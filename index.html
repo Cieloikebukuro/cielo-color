@@ -128,6 +128,10 @@ textarea{resize:none;height:56px;font-size:13px}
 .sync-dot.syncing{background:var(--orange);animation:pulse 1s infinite}
 .sync-dot.ok{background:#5EC97B}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hist-item{cursor:pointer}
+.hist-item:active{opacity:.85}
+.detail-gram-input{width:52px;text-align:right;padding:4px 6px;font-size:13px;border:0.5px solid var(--border2);border-radius:6px;background:var(--surface2);color:var(--text);font-family:inherit}
+.detail-gram-input:focus{outline:none;border-color:var(--orange);background:#fff}
 </style>
 </head>
 <body>
@@ -137,15 +141,19 @@ textarea{resize:none;height:56px;font-size:13px}
       <div class="logo">Cielo<span>.</span></div>
       <div class="sync-dot" id="sync-dot"></div>
     </div>
-    <div class="stylist-pill" onclick="openStylistSheet()">
-      <div class="stylist-avatar" id="top-avatar">—</div>
-      <div class="stylist-name" id="top-name">読込中</div>
-      <div style="font-size:10px;color:var(--text3)">▾</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="openHelp()" style="width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0">?</button>
+      <div class="stylist-pill" onclick="openStylistSheet()">
+        <div class="stylist-avatar" id="top-avatar">—</div>
+        <div class="stylist-name" id="top-name">読込中</div>
+        <div style="font-size:10px;color:var(--text3)">▾</div>
+      </div>
     </div>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="showTab('calc')">配合計算</button>
+    <button class="tab" onclick="showTab('zone')">塗り分け</button>
     <button class="tab" onclick="showTab('calendar')">カレンダー</button>
     <button class="tab" onclick="showTab('history')">カルテ</button>
   </div>
@@ -162,7 +170,7 @@ textarea{resize:none;height:56px;font-size:13px}
     <div class="card">
       <div class="card-title">仕上がり総量</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
           <input type="number" id="total-g" value="50" min="1" step="1" style="width:68px"/>
           <span style="color:var(--text2);font-size:13px">g</span>
         </div>
@@ -171,7 +179,6 @@ textarea{resize:none;height:56px;font-size:13px}
           <button class="toggle-opt" id="btn-excl" onclick="setOxiMode(false)">オキシ含まない</button>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px" id="total-hint">総量にオキシ・プレックス材も含めて逆算します</div>
     </div>
 
     <div class="card">
@@ -190,20 +197,33 @@ textarea{resize:none;height:56px;font-size:13px}
 
     <div class="card">
       <div class="card-title">薬剤（オキシ）</div>
-      <div class="oxi-grid">
-        <select id="oxi-type">
-          <option>3%（10vol）</option>
-          <option selected>6%（20vol）</option>
-          <option>9%（30vol）</option>
-          <option>12%（40vol）</option>
+      <!-- 濃度 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <select id="oxi-type" onchange="updateOxiHint()">
+          <option value="3%">3%</option>
+          <option value="4.5%">4.5%</option>
+          <option value="6%" selected>6%</option>
         </select>
         <select id="oxi-mult" onchange="updateOxiHint()">
           <option value="1">等倍（1:1）</option>
-          <option value="2">2倍（1:2）</option>
           <option value="1.5">1.5倍（1:1.5）</option>
+          <option value="2">2倍（1:2）</option>
         </select>
       </div>
-      <div class="oxi-hint" id="oxi-hint">カラー剤合計と同量のオキシを使用</div>
+      <!-- 比率を細かく指示 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <input type="checkbox" id="oxi-custom-check" onchange="toggleOxiCustom(this.checked)" style="width:auto;accent-color:var(--orange)"/>
+        <label for="oxi-custom-check" style="font-size:12px;color:var(--text2);cursor:pointer">比率を細かく指示する</label>
+      </div>
+      <div id="oxi-custom-area" style="display:none;margin-top:6px">
+        <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px;align-items:center">
+          <span style="font-size:12px;color:var(--text2)">カラー剤</span>
+          <input type="number" id="oxi-ratio-dye" value="1" min="0" step="0.5" oninput="updateOxiHint()"/>
+          <span style="font-size:12px;color:var(--text2)">: オキシ</span>
+          <input type="number" id="oxi-ratio-oxi" value="1" min="0" step="0.5" oninput="updateOxiHint()"/>
+        </div>
+      </div>
+      <div class="oxi-hint" id="oxi-hint" style="margin-top:8px">カラー剤合計と同量のオキシを使用</div>
     </div>
 
     <div class="card">
@@ -233,6 +253,44 @@ textarea{resize:none;height:56px;font-size:13px}
       </div>
       <div class="memo-label">お客様名・メモ</div>
       <textarea id="memo" placeholder="例: 田中さん　7N ベース　やや明るめ&#10;根元2cm リタッチ"></textarea>
+    </div>
+    <div style="height:80px"></div>
+  </div>
+
+  <!-- ZONE TAB -->
+  <div class="scroll" id="tab-zone" style="display:none">
+
+    <!-- パターン選択 -->
+    <div class="card">
+      <div class="card-title">施術パターン</div>
+      <div id="zone-pattern-selector" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)">
+        <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">薬剤（オキシ）の扱い</div>
+        <div style="display:flex;gap:6px">
+          <button class="toggle-opt active" id="zone-btn-incl" onclick="setZoneOxiMode(true)">総量に含む</button>
+          <button class="toggle-opt" id="zone-btn-excl" onclick="setZoneOxiMode(false)">総量に含まない</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ゾーン一覧（パターンに応じて動的生成） -->
+    <div id="zone-list"></div>
+
+    <!-- アシスタント・メモ -->
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <div class="memo-label">担当アシスタント</div>
+          <div id="zone-creator-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+        </div>
+        <div>
+          <div class="memo-label">顧客番号</div>
+          <div id="zone-customer-no-display" style="font-size:22px;font-weight:500;color:var(--orange);padding-top:4px">—</div>
+          <div style="font-size:10px;color:var(--text3)" id="zone-customer-no-hint">保存時に自動採番</div>
+        </div>
+      </div>
+      <div class="memo-label">お客様名・メモ</div>
+      <textarea id="zone-memo" placeholder="例: 田中さん　根元リタッチ＋毛先トリートメントカラー"></textarea>
     </div>
     <div style="height:80px"></div>
   </div>
@@ -268,6 +326,18 @@ textarea{resize:none;height:56px;font-size:13px}
   </div>
 </div>
 
+<!-- TREATMENT TYPE SHEET -->
+<div class="overlay" id="treatment-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="padding:0 20px 14px;border-bottom:0.5px solid var(--border)">
+      <div style="font-size:16px;font-weight:500">施術カテゴリを選択</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:3px">カルテに記録されます</div>
+    </div>
+    <div style="padding:16px 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="treatment-type-grid"></div>
+  </div>
+</div>
+
 <!-- RESULT SHEET -->
 <div class="overlay" id="result-overlay" onclick="closeResult(event)">
   <div class="sheet">
@@ -277,6 +347,157 @@ textarea{resize:none;height:56px;font-size:13px}
       <button class="btn-ghost" onclick="closeResultSheet()">閉じる</button>
     </div>
     <div id="result-content" style="padding:0 0 20px"></div>
+  </div>
+</div>
+
+<!-- RECORD DETAIL SHEET -->
+<div class="overlay" id="record-detail-overlay" onclick="closeRecordDetail(event)">
+  <div class="sheet" style="max-height:90dvh">
+    <div class="sheet-handle"></div>
+    <div style="padding:0 20px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:500" id="record-detail-title">カルテ詳細</div>
+      <button class="btn-ghost" onclick="document.getElementById('record-detail-overlay').classList.remove('show')">閉じる</button>
+    </div>
+    <div id="record-detail-content" style="padding:16px 20px 24px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- HELP SHEET -->
+<div class="overlay" id="help-overlay" onclick="closeHelp(event)">
+  <div class="sheet" style="max-height:92dvh">
+    <div class="sheet-handle"></div>
+    <div style="padding:0 20px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:.06em">使い方ガイド</div>
+      <button class="btn-ghost" onclick="document.getElementById('help-overlay').classList.remove('show')">閉じる</button>
+    </div>
+    <div style="padding:20px;overflow-y:auto">
+
+      <!-- STEP 1 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">1</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">担当スタイリストを選ぶ</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">画面上部のボタンから自分の名前をタップ。選択した状態で計算・保存すると、自分のカルテとして記録されます。</div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">2</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">総量とオキシ設定を入力する</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">仕上がりの総量（g）を入力します。<br>
+          <span style="color:var(--orange)">オキシ含む</span>：総量の中にオキシも含めて逆算<br>
+          <span style="color:var(--text2)">オキシ含まない</span>：カラー剤のみの量で計算（オキシは別途加算）<br>
+          ※ この設定は総量カードの中にあります。</div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">3</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">カラー剤を入力する</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">
+            名前と比率を入力します。例：A6 を <b>1</b>、A10 を <b>2</b> と入れると 1:2 の配合になります。<br><br>
+            <span style="background:var(--orange-light);color:var(--orange);padding:2px 8px;border-radius:99px;font-size:11px">%</span> ボタンをONにすると、カラー剤合計に対する割合（%）で指定できます。例：コレクターを10%追加したい場合に使います。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">4</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">オキシを選ぶ</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">
+            濃度（3% / 4.5% / 6%）と倍率（等倍・1.5倍・2倍）を選びます。<br>
+            <span style="color:var(--orange)">比率を細かく指示する</span>にチェックを入れると、カラー剤：オキシの比率を自由に数値で入力できます。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">5</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">プレックス材を追加する（任意）</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">
+            Eans0番・グリッターボンドなどを追加できます。カラー剤＋オキシ合計に対する割合（%）で計算されます。
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6 -->
+      <div style="display:flex;gap:14px;margin-bottom:24px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">6</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">アシスタントとメモを入力して保存</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">
+            担当アシスタント（あやね・さわ・みな）を選択。お客様名やメモを入力して「配合を計算する」→「カルテに保存」で記録完了。顧客番号はスタイリストごとに自動で採番されます（0時にリセット）。
+          </div>
+        </div>
+      </div>
+
+      <!-- 区切り -->
+      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
+
+      <!-- 塗り分け -->
+      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">塗り分け計算</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:6px">「塗り分け」タブでは部位ごとに別々の配合を計算できます。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px">
+          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">パターン</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.6">全体・根元/毛先・根元/中間/毛先・ブリーチ・インナー・グラデーション・ハイライト</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px">
+          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">ハイライト</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.6">ホイル枚数をプリセット＋±で入力。オンカラーは任意追加。</div>
+        </div>
+      </div>
+
+      <!-- 施術カテゴリ -->
+      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">施術カテゴリ</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:20px">
+        カルテ保存前に施術カテゴリを選択します。<br>
+        <span style="background:var(--surface2);padding:2px 8px;border-radius:99px">ワンカラー</span>　
+        <span style="background:var(--orange-light);color:var(--orange);padding:2px 8px;border-radius:99px">ダブルカラー</span>　
+        <span style="background:#D4A84B22;color:#D4A84B;padding:2px 8px;border-radius:99px">ハイライト</span>　
+        <span style="background:#5EC97B22;color:#5EC97B;padding:2px 8px;border-radius:99px">グラデーション</span>
+        <br>選んだカテゴリはカルテにバッジで表示されます。
+      </div>
+
+      <!-- 区切り -->
+      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
+
+      <!-- カルテ・カレンダー -->
+      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">カルテ・カレンダー</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:14px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px">カレンダー</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">オレンジの点がある日は記録あり。タップするとその日のカルテが表示されます。</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:14px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px">カルテ</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">スタイリストで絞り込み可能。「再現する」で同じ配合を計算画面に読み込めます。</div>
+        </div>
+      </div>
+
+      <!-- スタイリスト管理 -->
+      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
+      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">スタイリスト管理</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:20px">
+        右上の名前ボタンをタップするとスタイリスト一覧が開きます。追加・削除もここから行えます。新しいスタッフが入ったときはここから追加してください。
+      </div>
+
+      <!-- URL -->
+      <div style="background:var(--orange-light);border-radius:var(--radius);padding:14px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:500;color:var(--orange);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">アクセスURL</div>
+        <div style="font-size:12px;color:var(--text);word-break:break-all;line-height:1.7">https://cieloikebukuro.github.io/cielo-color/<br><br>このURLをブックマークしてください。どのスマホ・PCからでもアクセスできます。</div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -301,8 +522,29 @@ const SUPABASE_KEY='sb_publishable_4VGbsJHUwKsCuOARSqbtiA_JTp_eWx8';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const COLORS=['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2','#6AE2D4','#E26AAA'];
+const TREATMENT_TYPES=[
+  {id:'onecolor',   label:'ワンカラー',    color:'#6AADE2'},
+  {id:'doublecolor',label:'ダブルカラー',  color:'#EB601B'},
+  {id:'highlight',  label:'ハイライト',    color:'#D4A84B'},
+  {id:'gradation',  label:'グラデーション',color:'#5EC97B'},
+];
 const PLEX_OPTIONS=['Eans0番','グリッターボンド','その他'];
-const OXI_LABELS={'1':'カラー剤合計と同量のオキシを使用','2':'カラー剤合計の2倍のオキシを使用','1.5':'カラー剤合計の1.5倍のオキシを使用'};
+// オキシ関連ヘルパー
+function getOxiMult() {
+  const customCheck = document.getElementById('oxi-custom-check');
+  if (customCheck && customCheck.checked) {
+    const d = parseFloat(document.getElementById('oxi-ratio-dye')?.value)||1;
+    const o = parseFloat(document.getElementById('oxi-ratio-oxi')?.value)||1;
+    return d > 0 ? o / d : 1;
+  }
+  return parseFloat(document.getElementById('oxi-mult')?.value)||1;
+}
+
+function toggleOxiCustom(checked) {
+  const area = document.getElementById('oxi-custom-area');
+  if (area) area.style.display = checked ? 'block' : 'none';
+  updateOxiHint();
+}
 
 let stylists=[],records=[],dyes=[],additionals=[];
 let currentStylistId=localStorage.getItem('cielo_stylist')||null;
@@ -328,6 +570,8 @@ async function init(){
   setSyncState('ok');
   dyes=[{name:'',ratio:1,pctOn:false,pct:10},{name:'',ratio:1,pctOn:false,pct:10}];
   renderDyes();
+  initZoneData(zoneCurrentPattern);
+  cleanOldRecords();
 }
 
 const DEFAULT_MEMBERS=[
@@ -398,14 +642,8 @@ function renderCreatorSelector(){
   if(!el)return;
   el.innerHTML=CREATORS.map(c=>{
     const active=currentCreator===c;
-    return`<button onclick="selectCreator('${c}')" style="
-      padding:5px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;
-      border:${active?'none':'0.5px solid var(--border2)'};
-      background:${active?'var(--orange)':'var(--surface2)'};
-      color:${active?'#fff':'var(--text2)'};
-      font-weight:${active?'500':'300'};
-      transition:all .15s;white-space:nowrap;
-    ">${c}</button>`;
+    const s='padding:5px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;'+(active?'border:none;background:var(--orange);color:#fff;font-weight:500':'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+    return '<button onclick="selectCreator(\'' + c + '\')" style="'+s+'">'+c+'</button>';
   }).join('');
 }
 
@@ -445,6 +683,8 @@ function updateTopStylist(){
   renderCalcStylistSelector();
   renderCreatorSelector();
   updateCustomerNoPreview();
+  renderZoneCreatorSelector();
+  updateZoneCustomerNoPreview();
 }
 
 function openStylistSheet(){renderStylistList();document.getElementById('stylist-overlay').classList.add('show');}
@@ -509,12 +749,21 @@ function setOxiMode(incl){
   oxiIncluded=incl;
   document.getElementById('btn-incl').classList.toggle('active',incl);
   document.getElementById('btn-excl').classList.toggle('active',!incl);
-  document.getElementById('total-hint').textContent=incl
-    ?'総量にオキシ・プレックス材も含めて逆算します'
-    :'総量はカラー剤のみ。オキシ・プレックス材は別途加算されます';
 }
 function updateOxiHint(){
-  document.getElementById('oxi-hint').textContent=OXI_LABELS[document.getElementById('oxi-mult').value]||'';
+  const type=document.getElementById('oxi-type')?.value||'6%';
+  const mult=getOxiMult();
+  const custom=document.getElementById('oxi-custom-check')?.checked;
+  let ratioText;
+  if(custom){
+    const d=document.getElementById('oxi-ratio-dye')?.value||1;
+    const o=document.getElementById('oxi-ratio-oxi')?.value||1;
+    ratioText='カラー剤 '+d+' : オキシ '+o;
+  } else {
+    ratioText=mult===1?'等倍（1:1）':mult===1.5?'1.5倍（1:1.5）':'2倍（1:2）';
+  }
+  const el=document.getElementById('oxi-hint');
+  if(el)el.textContent=type+' / '+ratioText;
 }
 
 function addDye(){dyes.push({name:'',ratio:1,pctOn:false,pct:10});renderDyes();}
@@ -583,7 +832,7 @@ function calculate(){
   const stylist=currentStylistObj();
   if(!stylist){toast('スタイリストを選択してください');return;}
   const totalInput=parseFloat(document.getElementById('total-g').value)||50;
-  const oxiMult=parseFloat(document.getElementById('oxi-mult').value)||1;
+  const oxiMult=getOxiMult();
   const oxiType=document.getElementById('oxi-type').value;
   const ri=dyes.filter(d=>!d.pctOn),pi=dyes.filter(d=>d.pctOn);
   const ratioSum=ri.reduce((a,d)=>a+(parseFloat(d.ratio)||0),0);
@@ -631,7 +880,7 @@ function calculate(){
       <tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">${grandTotal.toFixed(1)} g</td><td class="pv">100%</td></tr>
     </table>
     <div class="action-row">
-      <button class="btn-primary" id="save-btn" onclick="saveRecord()">カルテに保存</button>
+      <button class="btn-primary" id="save-btn" onclick="openTreatmentSelect('normal')">カルテに保存</button>
     </div>
   `;
 
@@ -642,23 +891,19 @@ function calculate(){
 function closeResult(e){if(e.target===document.getElementById('result-overlay'))closeResultSheet();}
 function closeResultSheet(){document.getElementById('result-overlay').classList.remove('show');}
 
-async function saveRecord(){
+async function saveRecord(treatmentType){
   if(!window._lastCalc)return;
   const r=window._lastCalc;
   const stylist=currentStylistObj();
   if(!stylist)return;
   const btn=document.getElementById('save-btn');
-  btn.disabled=true;btn.textContent='保存中...';
+  if(btn){btn.disabled=true;btn.textContent='保存中...';}
   setSyncState('syncing');
   const now=new Date();
   const today=now.toISOString().split('T')[0];
-  // 本日のスタイリストの最大customer_noを取得して+1
   const{data:prevNos}=await sb.from('records')
-    .select('customer_no')
-    .eq('stylist_id',stylist.id)
-    .eq('date',today)
-    .order('customer_no',{ascending:false})
-    .limit(1);
+    .select('customer_no').eq('stylist_id',stylist.id).eq('date',today)
+    .order('customer_no',{ascending:false}).limit(1);
   const customerNo=(prevNos&&prevNos.length>0&&prevNos[0].customer_no)?prevNos[0].customer_no+1:1;
   const{data,error}=await sb.from('records').insert({
     stylist_id:stylist.id,stylist_name:stylist.name,stylist_color:stylist.color,
@@ -667,10 +912,10 @@ async function saveRecord(){
     oxi_g:r.oxiG,oxi_type:r.oxiType,oxi_mult:r.oxiMult,oxi_included:r.oxiIncluded,
     additionals:additionals.map((a,i)=>({type:a.type,name:a.name,pct:a.pct,gram:r.addGrams[i]})),
     grand_total:r.grandTotal,dye_total_g:r.dyeTotalG,
-    creator:currentCreator||null,
-    customer_no:customerNo
+    creator:currentCreator||null,customer_no:customerNo,
+    treatment_type:treatmentType||null
   }).select().single();
-  if(error){toast('保存に失敗しました');setSyncState('');btn.disabled=false;btn.textContent='カルテに保存';return;}
+  if(error){toast('保存に失敗しました');setSyncState('');if(btn){btn.disabled=false;btn.textContent='カルテに保存';}return;}
   records.unshift(data);
   setSyncState('ok');
   closeResultSheet();
@@ -679,14 +924,19 @@ async function saveRecord(){
 }
 
 function showTab(t){
-  ['calc','calendar','history'].forEach(n=>{
+  ['calc','zone','calendar','history'].forEach(n=>{
     document.getElementById('tab-'+n).style.display=n===t?'':'none';
   });
   document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['calc','calendar','history'][i]===t);
+    el.classList.toggle('active',['calc','zone','calendar','history'][i]===t);
   });
-  document.getElementById('bottom-cta').style.display=t==='calc'?'':'none';
+  document.getElementById('bottom-cta').style.display=t==='calc'||t==='zone'?'':'none';
+  document.getElementById('bottom-cta').querySelector('button').onclick=
+    t==='zone'?calculateZone:calculate;
+  document.getElementById('bottom-cta').querySelector('button').textContent=
+    t==='zone'?'塗り分け配合を計算する':'配合を計算する';
   currentTab=t;
+  if(t==='zone'){renderZonePatternSelector();renderZoneList();renderZoneCreatorSelector();updateZoneCustomerNoPreview();}
   if(t==='calendar')renderCalendar();
   if(t==='history')renderHistory();
 }
@@ -757,25 +1007,161 @@ function histItemHTML(h){
     +(aa.length>0?' + '+aa.map(a=>a.type+' '+parseFloat(a.gram).toFixed(1)+'g').join(' + '):'');
   const noLabel=h.customer_no?String(h.customer_no).padStart(2,'0')+'番':'';
   const creatorLabel=h.creator||'';
-  return'<div class="hist-item"><div class="hist-top">'
+  const zoneLabel=h.zone_pattern?'['+h.zone_pattern+'] ':'';
+  const noHtml=noLabel?'<span style="font-size:11px;font-weight:500;color:var(--orange);background:var(--orange-light);padding:2px 8px;border-radius:99px">'+noLabel+'</span>':'';
+  const ttObj=TREATMENT_TYPES.find(t=>t.id===h.treatment_type);
+  const ttHtml=ttObj?'<span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:'+ttObj.color+'22;color:'+ttObj.color+'">'+ttObj.label+'</span>':'';
+  const creatorHtml=creatorLabel?'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">作成: '+creatorLabel+'</div>':'';
+  const zoneHtml=zoneLabel?'<div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500">'+zoneLabel+'</div>':'';
+  const memoHtml=h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:3px">'+h.memo.split('\n')[0]+'</div>':'';
+  const stylistHtml='<span class="hist-stylist" style="background:'+h.stylist_color+'22;color:'+h.stylist_color+'">'+h.stylist_name+'</span>';
+  const eid='detail-'+h.id;
+  return '<div class="hist-item" id="'+eid+'" onclick="openRecordDetail(&quot;'+h.id+'&quot;)">'
+    +'<div class="hist-top">'
     +'<div style="display:flex;align-items:center;gap:6px">'
     +'<div class="hist-date">'+label+'</div>'
-    +(noLabel?'<span style="font-size:11px;font-weight:500;color:var(--orange);background:var(--orange-light);padding:2px 8px;border-radius:99px">'+noLabel+'</span>':'') 
+    +noHtml
+    +ttHtml
     +'</div>'
-    +'<span class="hist-stylist" style="background:'+h.stylist_color+'22;color:'+h.stylist_color+'">'+h.stylist_name+'</span></div>'
-    +(creatorLabel?'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">作成: '+creatorLabel+'</div>':'') 
-    +(h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:3px">'+h.memo.split('\n')[0]+'</div>':'')
+    +stylistHtml+'</div>'
+    +creatorHtml+zoneHtml+memoHtml
     +'<div class="hist-formula">'+formula+'</div>'
-    +'<div style="font-size:12px;color:var(--text2);margin-top:4px">総量 <strong>'+parseFloat(h.grand_total).toFixed(1)+'g</strong></div>'
-    +'<div class="hist-actions"><button class="btn-ghost" onclick="loadRecord(\'"+h.id+"\')">再現する</button>'
-    +'<button class="btn-ghost" onclick="deleteRecord(\'"+h.id+"\')">削除</button></div></div>';
+    +'<div style="font-size:12px;color:var(--text2);margin-top:4px">総量 <strong>'+parseFloat(h.grand_total).toFixed(1)+'g</strong> <span style="color:var(--text3);font-size:11px">▶ タップで詳細</span></div>'
+    +'</div>';
 }
 
+function openRecordDetail(id){
+  const h=records.find(x=>x.id===id);
+  if(!h)return;
+  const dd=h.dyes||[],aa=h.additionals||[];
+  const label=new Date(h.date+'T00:00:00').toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+  const noLabel=h.customer_no?String(h.customer_no).padStart(2,'0')+'番':'';
+
+  document.getElementById('record-detail-title').textContent=label+(noLabel?' '+noLabel:'');
+
+  // グラム数を編集可能なテーブルとして表示
+  let tableRows='';
+  dd.forEach((d,i)=>{
+    tableRows+=`<tr>
+      <td><div class="nm"><div class="dot" style="background:${['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]}"></div>${d.name||'カラー'+(i+1)}</div></td>
+      <td class="gv"><input class="detail-gram-input" type="number" value="${parseFloat(d.gram).toFixed(1)}"
+        min="0" step="0.1" onchange="updateDetailGram('${id}','dye',${i},this.value)"/></td>
+      <td class="pv" id="detail-pct-dye-${i}">—</td>
+    </tr>`;
+  });
+  tableRows+=`<tr>
+    <td><div class="nm"><div class="dot" style="background:#A0BCCC"></div>${h.oxi_type||'オキシ'}</div></td>
+    <td class="gv"><input class="detail-gram-input" type="number" value="${parseFloat(h.oxi_g).toFixed(1)}"
+      min="0" step="0.1" onchange="updateDetailGram('${id}','oxi',0,this.value)"/></td>
+    <td class="pv" id="detail-pct-oxi">—</td>
+  </tr>`;
+  aa.forEach((a,i)=>{
+    tableRows+=`<tr>
+      <td><div class="nm"><div class="dot" style="background:#B0CCAA"></div>${a.type}${a.name?' '+a.name:''}</div></td>
+      <td class="gv"><input class="detail-gram-input" type="number" value="${parseFloat(a.gram).toFixed(1)}"
+        min="0" step="0.1" onchange="updateDetailGram('${id}','add',${i},this.value)"/></td>
+      <td class="pv" id="detail-pct-add-${i}">—</td>
+    </tr>`;
+  });
+
+  document.getElementById('record-detail-content').innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:12px;background:${h.stylist_color}22;color:${h.stylist_color};padding:3px 10px;border-radius:99px">${h.stylist_name}</span>
+      ${h.creator?'<span style="font-size:12px;background:var(--surface2);color:var(--text2);padding:3px 10px;border-radius:99px">'+h.creator+'</span>':''}
+      ${h.zone_pattern?'<span style="font-size:12px;background:var(--orange-light);color:var(--orange);padding:3px 10px;border-radius:99px">'+h.zone_pattern+'</span>':''}
+    </div>
+    ${h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.6">'+h.memo.replace(/\n/g,'<br>')+'</div>':''}
+    <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">グラム数（編集可能）</div>
+    <table class="res-table" id="detail-table-${id}" style="margin-bottom:16px">
+      ${tableRows}
+      <tr class="total-row"><td><div class="nm">合計</div></td>
+        <td class="gv" id="detail-total-${id}">${parseFloat(h.grand_total).toFixed(1)} g</td>
+        <td class="pv">100%</td></tr>
+    </table>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" style="flex:1" onclick="recalcDetail('${id}')">再計算</button>
+      <button class="btn-ghost" onclick="loadRecord('${id}');document.getElementById('record-detail-overlay').classList.remove('show')">配合に戻す</button>
+      <button class="btn-ghost" style="color:var(--text3)" onclick="deleteRecord('${id}');document.getElementById('record-detail-overlay').classList.remove('show')">削除</button>
+    </div>
+  `;
+
+  // 保存しておく
+  window._detailRecord=JSON.parse(JSON.stringify(h));
+  updateDetailPcts(id);
+  document.getElementById('record-detail-overlay').classList.add('show');
+}
+
+function updateDetailGram(id,type,idx,val){
+  const h=window._detailRecord;
+  if(!h)return;
+  const v=parseFloat(val)||0;
+  if(type==='dye')h.dyes[idx].gram=v;
+  else if(type==='oxi')h.oxi_g=v;
+  else if(type==='add')h.additionals[idx].gram=v;
+  updateDetailPcts(id);
+}
+
+function updateDetailPcts(id){
+  const h=window._detailRecord;
+  if(!h)return;
+  const dd=h.dyes||[],aa=h.additionals||[];
+  const total=dd.reduce((s,d)=>s+parseFloat(d.gram||0),0)+parseFloat(h.oxi_g||0)+aa.reduce((s,a)=>s+parseFloat(a.gram||0),0);
+  dd.forEach((_,i)=>{
+    const el=document.getElementById('detail-pct-dye-'+i);
+    if(el)el.textContent=total>0?((parseFloat(dd[i].gram||0)/total)*100).toFixed(1)+'%':'—';
+  });
+  const oxiEl=document.getElementById('detail-pct-oxi');
+  if(oxiEl)oxiEl.textContent=total>0?((parseFloat(h.oxi_g||0)/total)*100).toFixed(1)+'%':'—';
+  aa.forEach((_,i)=>{
+    const el=document.getElementById('detail-pct-add-'+i);
+    if(el)el.textContent=total>0?((parseFloat(aa[i].gram||0)/total)*100).toFixed(1)+'%':'—';
+  });
+  const totalEl=document.getElementById('detail-total-'+id);
+  if(totalEl)totalEl.textContent=total.toFixed(1)+' g';
+}
+
+function recalcDetail(id){
+  const h=window._detailRecord;
+  if(!h)return;
+  // 変更後のグラム数を取得してバーチャートを更新表示
+  const dd=h.dyes||[],aa=h.additionals||[];
+  const total=dd.reduce((s,d)=>s+parseFloat(d.gram||0),0)+parseFloat(h.oxi_g||0)+aa.reduce((s,a)=>s+parseFloat(a.gram||0),0);
+  const allItems=[
+    ...dd.map((d,i)=>({label:d.name||'カラー'+(i+1),g:parseFloat(d.gram||0),color:['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]})),
+    {label:h.oxi_type||'オキシ',g:parseFloat(h.oxi_g||0),color:'#A0BCCC'},
+    ...aa.map((a,i)=>({label:a.type+(a.name?' '+a.name:''),g:parseFloat(a.gram||0),color:'#B0CCAA'}))
+  ];
+  // 結果シートを開いて表示
+  document.getElementById('result-content').innerHTML=`
+    <div style="background:var(--orange);padding:16px 20px">
+      <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">再計算結果</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#fff">${total.toFixed(1)}<span style="font-size:16px"> g</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${h.stylist_name}${h.memo?' — '+h.memo.split('\n')[0]:''}</div>
+    </div>
+    <div class="bar-section">
+      ${allItems.map(it=>`<div class="bar-row"><div class="bar-lbl">${it.label}</div><div class="bar-track"><div class="bar-fill" style="width:${total>0?(it.g/total*100).toFixed(1):0}%;background:${it.color}"></div></div><div class="bar-val">${it.g.toFixed(1)}g</div></div>`).join('')}
+    </div>
+    <table class="res-table">
+      ${allItems.map(it=>`<tr><td><div class="nm"><div class="dot" style="background:${it.color}"></div>${it.label}</div></td><td class="gv">${it.g.toFixed(1)} g</td><td class="pv">${total>0?(it.g/total*100).toFixed(1):0}%</td></tr>`).join('')}
+      <tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">${total.toFixed(1)} g</td><td class="pv">100%</td></tr>
+    </table>
+    <div class="action-row">
+      <button class="btn-ghost" onclick="document.getElementById('result-overlay').classList.remove('show')">閉じる</button>
+    </div>
+  `;
+  document.getElementById('record-detail-overlay').classList.remove('show');
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function closeRecordDetail(e){
+  if(e.target===document.getElementById('record-detail-overlay'))
+    document.getElementById('record-detail-overlay').classList.remove('show');
+}
 function loadRecord(id){
   const h=records.find(x=>x.id===id);if(!h)return;
   dyes=(h.dyes||[]).map(d=>({name:d.name||'',ratio:d.ratio||1,pctOn:d.pctOn||false,pct:d.pct||10}));
   additionals=(h.additionals||[]).map(a=>({type:a.type||'Eans0番',name:a.name||'',pct:a.pct||10}));
-  document.getElementById('oxi-type').value=h.oxi_type||'6%（20vol）';
+  document.getElementById('oxi-type').value=h.oxi_type||'6%';
   document.getElementById('oxi-mult').value=h.oxi_mult||1;
   document.getElementById('memo').value=h.memo||'';
   setOxiMode(h.oxi_included!==false);
@@ -791,6 +1177,586 @@ async function deleteRecord(id){
   setSyncState('ok');toast('削除しました');
   if(currentTab==='history')renderHistory();
   if(currentTab==='calendar')renderCalRecords();
+}
+
+// ─── ZONE CALCULATION ───
+const ZONE_PATTERNS = [
+  {id:'all',       label:'全体',                  zones:['全体']},
+  {id:'2zone',     label:'根元 / 毛先',            zones:['根元','毛先']},
+  {id:'3zone',     label:'根元 / 中間 / 毛先',     zones:['根元','中間','毛先']},
+  {id:'bleach',    label:'ブリーチ',               zones:['ブリーチ','オンカラー'], bleach:true},
+  {id:'inner_grad',label:'インナー・グラデーション', zones:['ブリーチ部','それ以外'], innerGrad:true, optionalZone:'オンカラー'},
+  {id:'highlight', label:'ハイライト',             zones:['ハイライトブリーチ'], highlight:true, optionalZone:'オンカラー'},
+];
+// インナー・グラデーションのサブタイプ
+let innerGradSubType = 'inner'; // 'inner' | 'gradation'
+// ブリーチのサブタイプ
+let bleachSubType = 'all'; // 'all' | 'inner' | 'gradation'
+
+
+let zoneCurrentPattern = ZONE_PATTERNS[0];
+let zoneData = {}; // {zoneName: {dyes, additionals, totalG, oxiMult, oxiType, oxiIncluded}}
+let zoneCreator = localStorage.getItem('cielo_zone_creator') || null;
+let zoneOxiIncluded = true;
+
+function setZoneOxiMode(incl) {
+  zoneOxiIncluded = incl;
+  document.getElementById('zone-btn-incl')?.classList.toggle('active', incl);
+  document.getElementById('zone-btn-excl')?.classList.toggle('active', !incl);
+  // 全ゾーンのoxiIncludedを一括更新
+  Object.keys(zoneData).forEach(k => { zoneData[k].oxiIncluded = incl; });
+}
+
+function initZoneData(pattern) {
+  const newData = {};
+  pattern.zones.forEach(z => {
+    if (zoneData[z]) {
+      newData[z] = zoneData[z];
+    } else {
+      newData[z] = {
+        dyes: [{name:'',ratio:1,pctOn:false,pct:10},{name:'',ratio:1,pctOn:false,pct:10}],
+        additionals: [],
+        totalG: 30,
+        oxiMult: 1,
+        oxiType: '6%',
+        oxiIncluded: true,
+        foilCount: 0,
+        oxiCustom: false,
+        oxiRatioDye: 1,
+        oxiRatioOxi: 1,
+      };
+    }
+  });
+  zoneData = newData;
+}
+
+function renderZonePatternSelector() {
+  const el = document.getElementById('zone-pattern-selector');
+  if (!el) return;
+  el.innerHTML = ZONE_PATTERNS.map(p => {
+    const active = zoneCurrentPattern.id === p.id;
+    const s = 'padding:10px 8px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;line-height:1.5;'+(active?'border:none;background:var(--orange);color:#fff;font-weight:500':'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+    return '<button onclick="selectZonePattern(\'' + p.id + '\')" style="'+s+'">'+p.label+'</button>';
+  }).join('');
+}
+
+function selectZonePattern(id) {
+  zoneCurrentPattern = ZONE_PATTERNS.find(p => p.id === id);
+  initZoneData(zoneCurrentPattern);
+  renderZonePatternSelector();
+  renderZoneList();
+  updateZoneCustomerNoPreview();
+}
+
+function renderZoneList() {
+  const el = document.getElementById('zone-list');
+  if (!el) return;
+
+  // インナー・グラデーション選択UI
+  let headerHTML = '';
+  if (zoneCurrentPattern.innerGrad) {
+    const subTypes = [['inner','インナーカラー'],['gradation','グラデーション']];
+    headerHTML = '<div class="card" style="margin-bottom:12px">'
+      + '<div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">タイプ</div>'
+      + '<div style="display:flex;gap:8px">'
+      + subTypes.map(([id,label]) => {
+          const active = innerGradSubType === id;
+          const s = 'flex:1;padding:10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;cursor:pointer;text-align:center;transition:all .15s;'
+            + (active ? 'border:none;background:var(--orange);color:#fff;font-weight:500'
+                      : 'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+          return '<button style="'+s+'" onclick="innerGradSubType=&quot;'+id+'&quot;;renderZoneList()">'+label+'</button>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  // ブリーチサブタイプ選択UI
+  if (zoneCurrentPattern.bleach) {
+    const subTypes = [['all','全頭ブリーチ'],['inner','インナー'],['gradation','グラデーション']];
+    headerHTML = '<div class="card" style="margin-bottom:12px">'
+      + '<div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">ブリーチ範囲</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + subTypes.map(([id,label]) => {
+          const active = bleachSubType === id;
+          const s = 'padding:8px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;'
+            + (active ? 'border:none;background:var(--orange);color:#fff;font-weight:500'
+                      : 'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+          return '<button style="'+s+'" onclick="bleachSubType=&quot;'+id+'&quot;;renderZoneList()">'+label+'</button>';
+        }).join('')
+      + '</div></div>';
+  }
+
+  el.innerHTML = headerHTML + zoneCurrentPattern.zones.map((zoneName, zi) => {
+    const z = zoneData[zoneName];
+    const zoneColor = ['#EB601B','#6AADE2','#5EC97B'][zi % 3];
+    return `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${zoneColor};flex-shrink:0"></div>
+        <div style="font-size:13px;font-weight:500;color:var(--text)">${zoneName}</div>
+      </div>
+
+      <!-- 総量 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--text3)">総量</span>
+          <input type="number" value="${z.totalG}" min="1" step="1" style="width:60px"
+            oninput="zoneData['${zoneName}'].totalG=parseFloat(this.value)||30"/>
+          <span style="font-size:12px;color:var(--text2)">g</span>
+        </div>
+
+      </div>
+
+      <!-- カラー剤 -->
+      <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">カラー剤</div>
+      <div class="col-heads dye" style="margin-bottom:4px">
+        <div class="col-head" style="text-align:left">名前</div>
+        <div class="col-head">比率</div>
+        <div class="col-head"></div>
+        <div class="col-head">g</div>
+        <div class="col-head"></div>
+      </div>
+      <div id="zone-dye-list-${zi}"></div>
+      <button class="btn-add" onclick="addZoneDye('${zoneName}',${zi})">
+        <span style="font-size:16px;line-height:1">+</span> カラー剤を追加
+      </button>
+
+      <!-- オキシ -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <select onchange="zoneData['${zoneName}'].oxiType=this.value">
+          ${['3%','4.5%','6%'].map(o=>`<option value="${o}"${z.oxiType===o?' selected':''}>${o}</option>`).join('')}
+        </select>
+        <select onchange="zoneData['${zoneName}'].oxiMult=parseFloat(this.value)">
+          ${[['1','等倍（1:1）'],['1.5','1.5倍'],['2','2倍（1:2）']].map(([v,l])=>`<option value="${v}"${z.oxiMult==v?' selected':''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" ${z.oxiCustom?'checked':''} onchange="zoneData['${zoneName}'].oxiCustom=this.checked;renderZoneList()" style="width:auto;accent-color:var(--orange)"/>
+          比率を細かく指示する
+        </label>
+        ${z.oxiCustom?`
+        <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px;align-items:center;margin-top:6px">
+          <span style="font-size:12px;color:var(--text2)">カラー剤</span>
+          <input type="number" value="${z.oxiRatioDye||1}" min="0" step="0.5"
+            oninput="zoneData['${zoneName}'].oxiRatioDye=parseFloat(this.value)||1"/>
+          <span style="font-size:12px;color:var(--text2)">: オキシ</span>
+          <input type="number" value="${z.oxiRatioOxi||1}" min="0" step="0.5"
+            oninput="zoneData['${zoneName}'].oxiRatioOxi=parseFloat(this.value)||1"/>
+        </div>`:''}
+      </div>
+
+      <!-- プレックス -->
+      <div id="zone-plex-list-${zi}"></div>
+      <button class="btn-add" style="margin-top:8px" onclick="addZonePlex('${zoneName}',${zi})">
+        <span style="font-size:16px;line-height:1">+</span> プレックス材
+      </button>
+
+      <!-- ホイル枚数（ハイライトブリーチのみ） -->
+      ${zoneName==='ハイライトブリーチ'?`
+      <div style="height:0.5px;background:var(--border);margin:16px 0"></div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">ホイル枚数</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        ${[4,6,8,10,12,15,20,25,30].map(n=>{
+          const sel=(z.foilCount||0)===n;
+          const s='padding:6px 12px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;'
+            +(sel?'border:none;background:var(--orange);color:#fff;font-weight:500':'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2)');
+          return '<button style="'+s+'" onclick="zoneData[\'${zoneName}\'].foilCount='+n+';renderZoneList()">'+n+'枚</button>';
+        }).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="zoneData['${zoneName}'].foilCount=Math.max(0,(zoneData['${zoneName}'].foilCount||0)-1);renderZoneList()" style="width:32px;height:32px;border-radius:50%;border:0.5px solid var(--border2);background:var(--surface2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-family:inherit">−</button>
+        <span style="font-size:26px;font-weight:500;color:var(--orange);min-width:56px;text-align:center">${z.foilCount||0}<span style="font-size:13px;font-weight:300;color:var(--text2)"> 枚</span></span>
+        <button onclick="zoneData['${zoneName}'].foilCount=(zoneData['${zoneName}'].foilCount||0)+1;renderZoneList()" style="width:32px;height:32px;border-radius:50%;border:none;background:var(--orange);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-family:inherit">＋</button>
+      </div>
+      `:''}
+    </div>`;
+  }).join('');
+
+  // ハイライト時: オンカラー追加ボタン
+  if (zoneCurrentPattern.optionalZone) {
+    const optZ = zoneCurrentPattern.optionalZone;
+    const hasOpt = zoneCurrentPattern.zones.includes(optZ);
+    const optBtn = document.createElement('div');
+    optBtn.className = 'card';
+    optBtn.style.cssText = 'border:1.5px dashed var(--border2);background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;padding:14px;cursor:pointer;';
+    optBtn.onclick = hasOpt ? () => removeOptionalZone(optZ) : () => addOptionalZone(optZ);
+    optBtn.innerHTML = hasOpt
+      ? '<span style="font-size:13px;color:var(--text3)">✕ オンカラーを外す</span>'
+      : '<span style="font-size:13px;color:var(--orange)">＋ オンカラーも作る</span>';
+    el.appendChild(optBtn);
+  }
+
+  // 各ゾーンのdye/plexをレンダリング
+  zoneCurrentPattern.zones.forEach((zoneName, zi) => {
+    renderZoneDyes(zoneName, zi);
+    renderZonePlexes(zoneName, zi);
+  });
+}
+
+function addOptionalZone(zoneName) {
+  if (!zoneCurrentPattern.zones.includes(zoneName)) {
+    zoneCurrentPattern.zones.push(zoneName);
+    if (!zoneData[zoneName]) {
+      zoneData[zoneName] = {
+        dyes: [{name:'',ratio:1,pctOn:false,pct:10},{name:'',ratio:1,pctOn:false,pct:10}],
+        additionals: [], totalG: 30, oxiMult: 1, oxiType: '6%', oxiIncluded: true, foilCount: 0, oxiCustom: false, oxiRatioDye: 1, oxiRatioOxi: 1,
+      };
+    }
+    renderZoneList();
+  }
+}
+
+function removeOptionalZone(zoneName) {
+  zoneCurrentPattern.zones = zoneCurrentPattern.zones.filter(z => z !== zoneName);
+  renderZoneList();
+}
+
+function renderZoneDyes(zoneName, zi) {
+  const el = document.getElementById('zone-dye-list-' + zi);
+  if (!el) return;
+  const dyes = zoneData[zoneName].dyes;
+  el.innerHTML = dyes.map((d, i) => `
+    <div class="dye-row">
+      <div class="dye-name-wrap">
+        <div class="dot" style="background:${['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]}"></div>
+        <input type="text" value="${d.name}" placeholder="${zoneName==='ブリーチ'?'ブリーチ剤名':'例: N7, A6'}"
+          oninput="zoneData['${zoneName}'].dyes[${i}].name=this.value" style="min-width:0"/>
+      </div>
+      <input type="number" value="${d.ratio}" min="0" step="0.5"
+        oninput="zoneData['${zoneName}'].dyes[${i}].ratio=parseFloat(this.value)||0"
+        style="${d.pctOn?'opacity:.25;pointer-events:none':''}"/>
+      <div class="pct-wrap">
+        <button class="pct-btn ${d.pctOn?'on':''}"
+          onclick="zoneData['${zoneName}'].dyes[${i}].pctOn=!zoneData['${zoneName}'].dyes[${i}].pctOn;renderZoneDyes('${zoneName}',${zi})">%</button>
+        ${d.pctOn
+          ? `<input type="number" value="${d.pct}" min="0" step="1" style="width:44px"
+              oninput="zoneData['${zoneName}'].dyes[${i}].pct=parseFloat(this.value)||0"/>`
+          : '<div style="width:4px"></div>'}
+      </div>
+      <input type="number" id="zone-dye-g-${zi}-${i}" readonly placeholder="—"/>
+      <button class="btn-icon" onclick="removeZoneDye('${zoneName}',${zi},${i})">×</button>
+    </div>
+    ${d.pctOn ? `<div class="pct-note">カラー剤合計の ${d.pct}% で計算</div>` : ''}
+  `).join('');
+}
+
+function addZoneDye(zoneName, zi) {
+  zoneData[zoneName].dyes.push({name:'',ratio:1,pctOn:false,pct:10});
+  renderZoneDyes(zoneName, zi);
+}
+function removeZoneDye(zoneName, zi, i) {
+  if (zoneData[zoneName].dyes.length <= 1) return;
+  zoneData[zoneName].dyes.splice(i, 1);
+  renderZoneDyes(zoneName, zi);
+}
+
+function renderZonePlexes(zoneName, zi) {
+  const el = document.getElementById('zone-plex-list-' + zi);
+  if (!el) return;
+  const adds = zoneData[zoneName].additionals;
+  if (adds.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = adds.map((a, i) => `
+    <div class="plex-row" style="margin-top:6px">
+      <select onchange="zoneData['${zoneName}'].additionals[${i}].type=this.value" style="font-size:12px">
+        ${['Eans0番','グリッターボンド','その他'].map(o=>`<option${a.type===o?' selected':''}>${o}</option>`).join('')}
+      </select>
+      <input type="text" value="${a.name}" placeholder="メモ"
+        oninput="zoneData['${zoneName}'].additionals[${i}].name=this.value"/>
+      <div style="display:flex;align-items:center;gap:4px">
+        <input type="number" value="${a.pct}" min="0" step="1" style="width:44px"
+          oninput="zoneData['${zoneName}'].additionals[${i}].pct=parseFloat(this.value)||0"/>
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0">%</span>
+      </div>
+      <button class="btn-icon" onclick="removeZonePlex('${zoneName}',${zi},${i})">×</button>
+    </div>
+  `).join('');
+}
+function addZonePlex(zoneName, zi) {
+  zoneData[zoneName].additionals.push({type:'Eans0番',name:'',pct:10});
+  renderZonePlexes(zoneName, zi);
+}
+function removeZonePlex(zoneName, zi, i) {
+  zoneData[zoneName].additionals.splice(i, 1);
+  renderZonePlexes(zoneName, zi);
+}
+
+function calcZone(zoneName) {
+  const z = zoneData[zoneName];
+  const ri = z.dyes.filter(d => !d.pctOn);
+  const pi = z.dyes.filter(d => d.pctOn);
+  const ratioSum = ri.reduce((a,d) => a + (parseFloat(d.ratio)||0), 0);
+  const sumPctDye = pi.reduce((a,d) => a + (parseFloat(d.pct)||0)/100, 0);
+  const sumPctPlex = z.additionals.reduce((a,b) => a + (parseFloat(b.pct)||0)/100, 0);
+  if (ratioSum === 0 && pi.length === 0) return null;
+  if (ratioSum === 0) return null;
+
+  const oxiMult = z.oxiCustom && z.oxiRatioDye > 0
+    ? (z.oxiRatioOxi||1) / (z.oxiRatioDye||1)
+    : parseFloat(z.oxiMult) || 1;
+  const B = z.oxiIncluded
+    ? z.totalG / ((1 + sumPctDye) * (1 + oxiMult) * (1 + sumPctPlex))
+    : z.totalG / (1 + sumPctDye);
+
+  const dyeTotalG = B * (1 + sumPctDye);
+  const oxiG = dyeTotalG * oxiMult;
+  const colorOxiTotal = dyeTotalG + oxiG;
+  const dyeGrams = z.dyes.map(d => d.pctOn
+    ? B * (parseFloat(d.pct)||0) / 100
+    : ratioSum > 0 ? B * (parseFloat(d.ratio)||0) / ratioSum : 0);
+  const addGrams = z.additionals.map(a => colorOxiTotal * (parseFloat(a.pct)||0) / 100);
+  const grandTotal = dyeTotalG + oxiG + addGrams.reduce((a,b) => a+b, 0);
+
+  return { dyeTotalG, oxiG, dyeGrams, addGrams, grandTotal };
+}
+
+function calculateZone() {
+  const stylist = currentStylistObj();
+  if (!stylist) { toast('スタイリストを選択してください'); return; }
+
+  let allValid = true;
+  let resultHTML = '';
+  let totalGrandTotal = 0;
+  const zoneResults = [];
+
+  zoneCurrentPattern.zones.forEach((zoneName, zi) => {
+    const res = calcZone(zoneName);
+    if (!res) { allValid = false; toast(zoneName + 'のカラー剤を入力してください'); return; }
+    const z = zoneData[zoneName];
+    const zoneColor = ['#EB601B','#6AADE2','#5EC97B'][zi % 3];
+    totalGrandTotal += res.grandTotal;
+    zoneResults.push({ zoneName, res, z, zoneColor });
+
+    // g値を画面に反映
+    z.dyes.forEach((_,i) => {
+      const el = document.getElementById('zone-dye-g-' + zi + '-' + i);
+      if (el) el.value = res.dyeGrams[i].toFixed(1);
+    });
+
+    const allItems = [
+      ...z.dyes.map((d,i) => ({label:(d.name||'カラー'+(i+1))+(d.pctOn?` (${d.pct}%)`:''), g:res.dyeGrams[i], color:['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]})),
+      {label:z.oxiType, g:res.oxiG, color:'#A0BCCC'},
+      ...z.additionals.map((a,i) => ({label:a.type+(a.name?' '+a.name:''), g:res.addGrams[i], color:'#B0CCAA'}))
+    ];
+
+    resultHTML += `
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${zoneColor}"></div>
+          <div style="font-size:13px;font-weight:500;color:#fff">${zoneName}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-left:auto">${res.grandTotal.toFixed(1)}g</div>
+        </div>
+        ${allItems.map(it => `
+          <div class="bar-row">
+            <div class="bar-lbl">${it.label}</div>
+            <div class="bar-track" style="background:rgba(255,255,255,.2)">
+              <div class="bar-fill" style="width:${(it.g/res.grandTotal*100).toFixed(1)}%;background:rgba(255,255,255,.7)"></div>
+            </div>
+            <div class="bar-val" style="color:rgba(255,255,255,.85)">${it.g.toFixed(1)}g</div>
+          </div>
+        `).join('')}
+      </div>`;
+  });
+
+  if (!allValid) return;
+
+  // テーブル詳細
+  let tableHTML = '';
+  zoneResults.forEach(({ zoneName, res, z, zoneColor }) => {
+    const allItems = [
+      ...z.dyes.map((d,i) => ({label:(d.name||'カラー'+(i+1))+(d.pctOn?` (${d.pct}%)`:''), g:res.dyeGrams[i], color:['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]})),
+      {label:z.oxiType, g:res.oxiG, color:'#A0BCCC'},
+      ...z.additionals.map((a,i) => ({label:a.type+(a.name?' '+a.name:''), g:res.addGrams[i], color:'#B0CCAA'}))
+    ];
+    tableHTML += `
+      <tr><td colspan="3" style="padding:10px 16px 4px;background:var(--surface2)">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:7px;height:7px;border-radius:50%;background:${zoneColor}"></div>
+          <span style="font-size:12px;font-weight:500;color:var(--text)">${zoneName}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">計 ${res.grandTotal.toFixed(1)}g</span>
+        </div>
+      </td></tr>
+      ${allItems.map(it => `
+        <tr><td><div class="nm" style="padding-left:8px"><div class="dot" style="background:${it.color}"></div>${it.label}</div></td>
+        <td class="gv">${it.g.toFixed(1)} g</td>
+        <td class="pv">${(it.g/res.grandTotal*100).toFixed(1)}%</td></tr>
+      `).join('')}`;
+  });
+
+  document.getElementById('result-content').innerHTML = `
+    <div style="background:var(--orange);padding:16px 20px">
+      <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">合計総量（${zoneCurrentPattern.label}）</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#fff">${totalGrandTotal.toFixed(1)}<span style="font-size:16px"> g</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${stylist.name}</div>
+      <div style="height:0.5px;background:rgba(255,255,255,.2);margin:12px 0"></div>
+      <div class="bar-section" style="padding:0">${resultHTML}</div>
+    </div>
+    <table class="res-table">
+      ${tableHTML}
+      <tr class="total-row">
+        <td><div class="nm">全体合計</div></td>
+        <td class="gv">${totalGrandTotal.toFixed(1)} g</td>
+        <td class="pv">—</td>
+      </tr>
+    </table>
+    <div class="action-row">
+      <button class="btn-primary" id="save-btn-zone" onclick="openTreatmentSelect('zone')">カルテに保存</button>
+    </div>
+  `;
+
+  window._lastZoneCalc = { zoneResults, totalGrandTotal, pattern: zoneCurrentPattern };
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+async function saveZoneRecord(treatmentType) {
+  if (!window._lastZoneCalc) return;
+  const stylist = currentStylistObj();
+  if (!stylist) return;
+  const btn = document.getElementById('save-btn-zone');
+  btn.disabled = true; btn.textContent = '保存中...';
+  setSyncState('syncing');
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  const { data: prevNos } = await sb.from('records')
+    .select('customer_no').eq('stylist_id', stylist.id).eq('date', today)
+    .order('customer_no', { ascending: false }).limit(1);
+  const customerNo = (prevNos && prevNos.length > 0 && prevNos[0].customer_no) ? prevNos[0].customer_no + 1 : 1;
+
+  const memo = document.getElementById('zone-memo').value;
+  const zr = window._lastZoneCalc;
+
+  // ゾーン情報をJSONで保存
+  const zoneSnapshot = zr.zoneResults.map(({ zoneName, res, z }) => ({
+    zone: zoneName,
+    dyes: z.dyes.map((d,i) => ({name:d.name||'カラー'+(i+1), ratio:d.ratio, pctOn:d.pctOn, pct:d.pct, gram:res.dyeGrams[i]})),
+    oxi_g: res.oxiG, oxi_type: z.oxiType, oxi_mult: z.oxiMult,
+    additionals: z.additionals.map((a,i) => ({type:a.type, name:a.name, pct:a.pct, gram:res.addGrams[i]})),
+    total_g: res.grandTotal,
+  }));
+
+  // dyes/additionalsはfirst zoneのものを保存、zone詳細はmemoに追記
+  const firstZone = zr.zoneResults[0];
+  const { data, error } = await sb.from('records').insert({
+    stylist_id: stylist.id, stylist_name: stylist.name, stylist_color: stylist.color,
+    date: today, memo: memo,
+    dyes: firstZone.res.dyeGrams.map((g,i) => ({name:firstZone.z.dyes[i]?.name||'カラー'+(i+1), gram:g})),
+    oxi_g: firstZone.res.oxiG, oxi_type: firstZone.z.oxiType, oxi_mult: firstZone.z.oxiMult,
+    oxi_included: firstZone.z.oxiIncluded,
+    additionals: firstZone.z.additionals.map((a,i) => ({type:a.type, name:a.name, pct:a.pct, gram:firstZone.res.addGrams[i]})),
+    grand_total: zr.totalGrandTotal, dye_total_g: firstZone.res.dyeTotalG,
+    creator: zoneCreator || null, customer_no: customerNo,
+    zone_pattern: zr.pattern.label, zone_data: zoneSnapshot,
+    treatment_type: treatmentType||null,
+  }).select().single();
+
+  if (error) { toast('保存に失敗しました'); setSyncState(''); btn.disabled=false; btn.textContent='カルテに保存'; return; }
+  records.unshift(data);
+  setSyncState('ok');
+  closeResultSheet();
+  updateZoneCustomerNoPreview();
+  toast('カルテに保存しました ✓ （' + stylist.name + ' ' + String(customerNo).padStart(2,'0') + '番）');
+}
+
+function renderZoneCreatorSelector() {
+  const el = document.getElementById('zone-creator-selector');
+  if (!el) return;
+  el.innerHTML = CREATORS.map(c => {
+    const active = zoneCreator === c;
+    const st = 'padding:5px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;'+(active?'border:none;background:var(--orange);color:#fff;font-weight:500':'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+    return '<button onclick="selectZoneCreator(\'' + c + '\')" style="'+st+'">'+c+'</button>';
+  }).join('');
+}
+
+function selectZoneCreator(name) {
+  zoneCreator = name;
+  localStorage.setItem('cielo_zone_creator', name);
+  renderZoneCreatorSelector();
+}
+
+async function updateZoneCustomerNoPreview() {
+  const stylist = currentStylistObj();
+  if (!stylist) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('records')
+    .select('customer_no').eq('stylist_id', stylist.id).eq('date', today)
+    .order('customer_no', { ascending: false }).limit(1);
+  const next = (data && data.length > 0 && data[0].customer_no) ? data[0].customer_no + 1 : 1;
+  const el = document.getElementById('zone-customer-no-display');
+  const hint = document.getElementById('zone-customer-no-hint');
+  if (el) el.textContent = String(next).padStart(2, '0');
+  if (hint) hint.textContent = '本日 ' + stylist.name + ' の ' + next + ' 番目';
+}
+
+// ─── TREATMENT TYPE ───
+
+let _treatmentSaveMode = 'normal'; // 'normal' or 'zone'
+let _selectedTreatmentType = null;
+
+function openTreatmentSelect(mode) {
+  _treatmentSaveMode = mode;
+  _selectedTreatmentType = null;
+  const grid = document.getElementById('treatment-type-grid');
+  grid.innerHTML = TREATMENT_TYPES.map(t => {
+    const s = 'padding:18px 10px;border-radius:var(--radius);font-size:13px;font-family:inherit;cursor:pointer;text-align:center;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:8px;';
+    const dot = '<div style="width:28px;height:28px;border-radius:50%;background:' + t.color + '22;display:flex;align-items:center;justify-content:center"><div style="width:10px;height:10px;border-radius:50%;background:' + t.color + '"></div></div>';
+    return '<button id="tt-'+t.id+'" style="'+s+'" onclick="selectTreatmentType(&quot;'+t.id+'&quot;)">' + dot + t.label + '</button>';
+  }).join('');
+
+  const saveBtn = document.createElement('button');
+  saveBtn.id = 'treatment-save-btn';
+  saveBtn.className = 'btn-primary';
+  saveBtn.style.cssText = 'grid-column:1/-1;margin-top:4px;opacity:.5;pointer-events:none;';
+  saveBtn.textContent = 'カルテに保存';
+  saveBtn.onclick = () => executeSave();
+  grid.appendChild(saveBtn);
+
+  document.getElementById('treatment-overlay').classList.add('show');
+}
+
+function selectTreatmentType(id) {
+  _selectedTreatmentType = id;
+  TREATMENT_TYPES.forEach(t => {
+    const btn = document.getElementById('tt-' + t.id);
+    if (!btn) return;
+    if (t.id === id) {
+      btn.style.background = t.color + '22';
+      btn.style.border = '2px solid ' + t.color;
+      btn.style.color = t.color;
+      btn.style.fontWeight = '500';
+    } else {
+      btn.style.background = 'var(--surface2)';
+      btn.style.border = '0.5px solid var(--border2)';
+      btn.style.color = 'var(--text2)';
+      btn.style.fontWeight = '300';
+    }
+  });
+  const sb = document.getElementById('treatment-save-btn');
+  if (sb) { sb.style.opacity = '1'; sb.style.pointerEvents = 'auto'; }
+}
+
+async function executeSave() {
+  document.getElementById('treatment-overlay').classList.remove('show');
+  if (_treatmentSaveMode === 'zone') {
+    await saveZoneRecord(_selectedTreatmentType);
+  } else {
+    await saveRecord(_selectedTreatmentType);
+  }
+}
+
+// 4ヶ月以上前のカルテを自動削除
+async function cleanOldRecords() {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 4);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  await sb.from('records').delete().lt('date', cutoffStr);
+}
+
+function openHelp(){
+  document.getElementById('help-overlay').classList.add('show');
+}
+function closeHelp(e){
+  if(e.target===document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.remove('show');
 }
 
 init();
