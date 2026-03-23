@@ -767,8 +767,8 @@ function histItemHTML(h){
     +(h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:3px">'+h.memo.split('\n')[0]+'</div>':'')
     +'<div class="hist-formula">'+formula+'</div>'
     +'<div style="font-size:12px;color:var(--text2);margin-top:4px">総量 <strong>'+parseFloat(h.grand_total).toFixed(1)+'g</strong></div>'
-    +'<div class="hist-actions"><button class="btn-ghost" onclick="loadRecord(\\''+h.id+'\\')">再現する</button>'
-    +'<button class="btn-ghost" onclick="deleteRecord(\\''+h.id+'\\')">削除</button></div></div>';
+    +'<div class="hist-actions"><button class="btn-ghost" onclick="loadRecord(\'"+h.id+"\')">再現する</button>'
+    +'<button class="btn-ghost" onclick="deleteRecord(\'"+h.id+"\')">削除</button></div></div>';
 }
 
 function loadRecord(id){
