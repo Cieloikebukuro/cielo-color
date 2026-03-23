@@ -262,9 +262,52 @@ textarea{resize:none;height:56px;font-size:13px}
       <textarea id="memo" placeholder="例: 田中さん　7N ベース　やや明るめ&#10;根元2cm リタッチ"></textarea>
     </div>
     <div style="height:80px"></div>
-  </div>
+    </div><!-- /sub-calc-content -->
 
-  <!-- ZONE内部要素（tab-calcのサブタブに移植済み） -->
+    <!-- 塗り分けコンテンツ（サブタブ） -->
+    <div id="sub-zone-content" style="display:none">
+
+      <!-- スタイリスト選択 -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">担当スタイリスト</div>
+        <div id="calc-stylist-selector-zone" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+
+      <!-- パターン選択 -->
+      <div class="card">
+        <div class="card-title">施術パターン</div>
+        <div id="zone-pattern-selector" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)">
+          <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">薬剤（オキシ）の扱い</div>
+          <div style="display:flex;gap:6px">
+            <button class="toggle-opt active" id="zone-btn-incl" onclick="setZoneOxiMode(true)">総量に含む</button>
+            <button class="toggle-opt" id="zone-btn-excl" onclick="setZoneOxiMode(false)">総量に含まない</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="zone-list"></div>
+
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <div class="memo-label">担当アシスタント</div>
+            <div id="zone-creator-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+          </div>
+          <div>
+            <div class="memo-label">顧客番号</div>
+            <div id="zone-customer-no-display" style="font-size:22px;font-weight:500;color:var(--orange);padding-top:4px">—</div>
+            <div style="font-size:10px;color:var(--text3)" id="zone-customer-no-hint">保存時に自動採番</div>
+          </div>
+        </div>
+        <div class="memo-label">お客様名・メモ</div>
+        <textarea id="zone-memo" placeholder="例: 田中さん　根元リタッチ＋毛先トリートメントカラー"></textarea>
+      </div>
+      <div style="height:80px"></div>
+    </div><!-- /sub-zone-content -->
+  </div><!-- /tab-calc -->
+
+  <!-- ZONE内部要素 -->
   <div id="tab-zone" style="display:none"></div>
 
   <!-- PERM TAB (縮毛・デジパ) -->
@@ -2053,8 +2096,8 @@ function showSubCalc(sub) {
     renderZoneList();
     renderZoneCreatorSelector();
     updateZoneCustomerNoPreview();
-    // zone-calc-stylist-selectorも更新
-    const zcs = document.getElementById('zone-calc-stylist-selector');
+    // スタイリスト選択を同期
+    const zcs = document.getElementById('calc-stylist-selector-zone');
     if (zcs) zcs.innerHTML = document.getElementById('calc-stylist-selector')?.innerHTML || '';
     document.getElementById('bottom-cta').querySelector('button').onclick = calculateZone;
     document.getElementById('bottom-cta').querySelector('button').textContent = '塗り分け配合を計算する';
