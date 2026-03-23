@@ -370,133 +370,126 @@ textarea{resize:none;height:56px;font-size:13px}
       <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:.06em">使い方ガイド</div>
       <button class="btn-ghost" onclick="document.getElementById('help-overlay').classList.remove('show')">閉じる</button>
     </div>
-    <div style="padding:20px;overflow-y:auto">
+    <div style="overflow-y:auto;display:flex;flex-direction:column;max-height:calc(92dvh - 60px)">
 
-      <!-- STEP 1 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">1</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">担当スタイリストを選ぶ</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">画面上部のボタンから自分の名前をタップ。選択した状態で計算・保存すると、自分のカルテとして記録されます。</div>
+      <!-- 目次 -->
+      <div style="padding:14px 20px;border-bottom:0.5px solid var(--border);background:var(--surface2)">
+        <div style="font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">目次</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <a href="#h-calc" onclick="scrollHelpTo('h-calc')" style="font-size:12px;color:var(--orange);background:var(--orange-light);padding:4px 12px;border-radius:99px;text-decoration:none">配合計算</a>
+          <a href="#h-recalc" onclick="scrollHelpTo('h-recalc')" style="font-size:12px;color:var(--orange);background:var(--orange-light);padding:4px 12px;border-radius:99px;text-decoration:none;font-weight:500;border:1.5px solid var(--orange)">★ 追加分を計算</a>
+          <a href="#h-zone" onclick="scrollHelpTo('h-zone')" style="font-size:12px;color:var(--text2);background:var(--surface);padding:4px 12px;border-radius:99px;text-decoration:none;border:0.5px solid var(--border2)">塗り分け</a>
+          <a href="#h-carte" onclick="scrollHelpTo('h-carte')" style="font-size:12px;color:var(--text2);background:var(--surface);padding:4px 12px;border-radius:99px;text-decoration:none;border:0.5px solid var(--border2)">カルテ</a>
+          <a href="#h-stylist" onclick="scrollHelpTo('h-stylist')" style="font-size:12px;color:var(--text2);background:var(--surface);padding:4px 12px;border-radius:99px;text-decoration:none;border:0.5px solid var(--border2)">スタイリスト</a>
         </div>
       </div>
 
-      <!-- STEP 2 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">2</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">総量とオキシ設定を入力する</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">仕上がりの総量（g）を入力します。<br>
-          <span style="color:var(--orange)">オキシ含む</span>：総量の中にオキシも含めて逆算<br>
-          <span style="color:var(--text2)">オキシ含まない</span>：カラー剤のみの量で計算（オキシは別途加算）<br>
-          ※ この設定は総量カードの中にあります。</div>
-        </div>
-      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1" id="help-scroll-body">
 
-      <!-- STEP 3 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">3</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">カラー剤を入力する</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">
-            名前と比率を入力します。例：A6 を <b>1</b>、A10 を <b>2</b> と入れると 1:2 の配合になります。<br><br>
-            <span style="background:var(--orange-light);color:var(--orange);padding:2px 8px;border-radius:99px;font-size:11px">%</span> ボタンをONにすると、カラー剤合計に対する割合（%）で指定できます。例：コレクターを10%追加したい場合に使います。
+        <!-- 配合計算 -->
+        <div id="h-calc" style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px;padding-top:4px">配合計算の使い方</div>
+
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0">1</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">スタイリストを選ぶ</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">配合計算ページ上部のボタンから自分の名前をタップ。</div>
           </div>
         </div>
-      </div>
 
-      <!-- STEP 4 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">4</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">オキシを選ぶ</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">
-            濃度（3% / 4.5% / 6%）と倍率（等倍・1.5倍・2倍）を選びます。<br>
-            <span style="color:var(--orange)">比率を細かく指示する</span>にチェックを入れると、カラー剤：オキシの比率を自由に数値で入力できます。
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0">2</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">総量とオキシ設定を入力</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6"><span style="color:var(--orange)">オキシ含む</span>：総量にオキシも含めて逆算　／　<span style="color:var(--text2)">オキシ含まない</span>：カラー剤のみで計算</div>
           </div>
         </div>
-      </div>
 
-      <!-- STEP 5 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">5</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">プレックス材を追加する（任意）</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">
-            Eans0番・グリッターボンドなどを追加できます。カラー剤＋オキシ合計に対する割合（%）で計算されます。
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0">3</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">カラー剤を入力</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">名前と比率を入力（例：A6＝1、A10＝2 → 1:2配合）。<span style="background:var(--orange-light);color:var(--orange);padding:1px 7px;border-radius:99px;font-size:11px">%</span>ボタンでカラー剤合計比での指定も可能。</div>
           </div>
         </div>
-      </div>
 
-      <!-- STEP 6 -->
-      <div style="display:flex;gap:14px;margin-bottom:24px">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0">6</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px">アシスタントとメモを入力して保存</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7">
-            担当アシスタント（あやね・さわ・みな）を選択。お客様名やメモを入力して「配合を計算する」→「カルテに保存」で記録完了。顧客番号はスタイリストごとに自動で採番されます（0時にリセット）。
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0">4</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">オキシを選ぶ</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">濃度（3% / 4.5% / 6%）と倍率を選択。<span style="color:var(--orange)">比率を細かく指示する</span>で自由比率入力も可。</div>
           </div>
         </div>
-      </div>
 
-      <!-- 区切り -->
-      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
-
-      <!-- 塗り分け -->
-      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">塗り分け計算</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:6px">「塗り分け」タブでは部位ごとに別々の配合を計算できます。</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px">
-          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">パターン</div>
-          <div style="font-size:11px;color:var(--text2);line-height:1.6">全体・根元/毛先・根元/中間/毛先・ブリーチ・インナー・グラデーション・ハイライト</div>
+        <div style="display:flex;gap:14px;margin-bottom:20px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0">5</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">アシスタント・メモを入力して保存</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">担当アシスタントを選んでメモを入力。「配合を計算する」→施術カテゴリ選択→「カルテに保存」。</div>
+          </div>
         </div>
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px">
-          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">ハイライト</div>
-          <div style="font-size:11px;color:var(--text2);line-height:1.6">ホイル枚数をプリセット＋±で入力。オンカラーは任意追加。</div>
+
+        <!-- 追加分を計算（目立たせる） -->
+        <div id="h-recalc" style="background:linear-gradient(135deg,var(--orange-light),var(--gold-light));border:1.5px solid var(--orange-mid);border-radius:var(--radius);padding:16px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">★</div>
+            <div style="font-size:14px;font-weight:500;color:var(--orange)">追加分を計算</div>
+          </div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            カルテをタップすると詳細が開きます。<br>
+            「仕上がり総量を変更」欄に新しい総量を入力して<strong style="color:var(--orange)">「追加分を計算」</strong>を押すと、元の比率・オキシ倍率を保ったままグラム数が自動で逆算されます。<br><br>
+            <span style="background:var(--surface);padding:3px 10px;border-radius:99px;font-size:11px;color:var(--text2)">例：50g → 70gに変更したい</span><br>
+            <span style="font-size:11px;color:var(--text2)">→ 20g分の追加量が各剤ごとに自動計算されます</span>
+          </div>
         </div>
-      </div>
 
-      <!-- 施術カテゴリ -->
-      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">施術カテゴリ</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:20px">
-        カルテ保存前に施術カテゴリを選択します。<br>
-        <span style="background:var(--surface2);padding:2px 8px;border-radius:99px">ワンカラー</span>　
-        <span style="background:var(--orange-light);color:var(--orange);padding:2px 8px;border-radius:99px">ダブルカラー</span>　
-        <span style="background:#D4A84B22;color:#D4A84B;padding:2px 8px;border-radius:99px">ハイライト</span>　
-        <span style="background:#5EC97B22;color:#5EC97B;padding:2px 8px;border-radius:99px">グラデーション</span>
-        <br>選んだカテゴリはカルテにバッジで表示されます。
-      </div>
+        <div style="height:0.5px;background:var(--border);margin:4px 0 20px"></div>
 
-      <!-- 区切り -->
-      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
-
-      <!-- カルテ・カレンダー -->
-      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">カルテ・カレンダー</div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:14px">
-          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px">カレンダー</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.6">オレンジの点がある日は記録あり。タップするとその日のカルテが表示されます。</div>
+        <!-- 塗り分け -->
+        <div id="h-zone" style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">塗り分け計算</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">「塗り分け」タブで部位ごとに別々の配合を計算できます。</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px">
+            <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px">パターン</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5">全体 / 根元・毛先 / 根元・中間・毛先 / ブリーチ / インナー・グラデーション / ハイライト</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px">
+            <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px">ハイライト</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5">ホイル枚数プリセット＋±で入力。オンカラーは任意追加。</div>
+          </div>
         </div>
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:14px">
-          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px">カルテ</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.6">スタイリストで絞り込み可能。「再現する」で同じ配合を計算画面に読み込めます。</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:20px">施術カテゴリ（ワンカラー / ダブルカラー / ハイライト / グラデーション）を保存前に選択。カルテにバッジで表示されます。</div>
+
+        <div style="height:0.5px;background:var(--border);margin:4px 0 20px"></div>
+
+        <!-- カルテ -->
+        <div id="h-carte" style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">カルテ・カレンダー</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px">
+            <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">カレンダー</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5">オレンジの点がある日は記録あり。タップするとその日のカルテが表示。</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px">
+            <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">カルテ</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5">スタイリストで絞り込み可。タップで詳細表示・追加分を計算。</div>
+          </div>
         </div>
-      </div>
 
-      <!-- スタイリスト管理 -->
-      <div style="height:0.5px;background:var(--border);margin:8px 0 20px"></div>
-      <div style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">スタイリスト管理</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:20px">
-        右上の名前ボタンをタップするとスタイリスト一覧が開きます。追加・削除もここから行えます。新しいスタッフが入ったときはここから追加してください。
-      </div>
+        <div style="height:0.5px;background:var(--border);margin:4px 0 20px"></div>
 
-      <!-- URL -->
-      <div style="background:var(--orange-light);border-radius:var(--radius);padding:14px;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:500;color:var(--orange);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">アクセスURL</div>
-        <div style="font-size:12px;color:var(--text);word-break:break-all;line-height:1.7">https://cieloikebukuro.github.io/cielo-color/<br><br>このURLをブックマークしてください。どのスマホ・PCからでもアクセスできます。</div>
-      </div>
+        <!-- スタイリスト -->
+        <div id="h-stylist" style="font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">スタイリスト管理</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:16px">
+          右上の名前ボタンをタップするとスタイリスト一覧が開きます。追加・削除もここから行えます。
+        </div>
 
+        <!-- URL -->
+        <div style="background:var(--orange-light);border-radius:var(--radius);padding:14px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:500;color:var(--orange);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">アクセスURL</div>
+          <div style="font-size:12px;color:var(--text);word-break:break-all;line-height:1.7">https://cieloikebukuro.github.io/cielo-color/<br><br>このURLをブックマークしてください。どのスマホ・PCからでもアクセスできます。</div>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>
@@ -1041,8 +1034,14 @@ function openRecordDetail(id){
 
   // オキシ比率を元のデータから復元
   const oxiMult=parseFloat(h.oxi_mult)||1;
-  // 元の総量を計算
+  // oxi_includedに応じて入力値を変える
+  const oxiIncluded=h.oxi_included!==false;
+  const dyeTotalSaved=parseFloat(h.dye_total_g)||0;
+  const oxiGSaved=parseFloat(h.oxi_g)||0;
+  const origInputVal=oxiIncluded?(dyeTotalSaved+oxiGSaved):dyeTotalSaved;
   const origTotal=parseFloat(h.grand_total)||0;
+  const inputLabel=oxiIncluded?'カラー剤 + オキシ（g）':'カラー剤のみ（g）';
+  const inputHint=oxiIncluded?'カラー剤+オキシの合計量を入力 → プレックス材も含む総量を逆算':'カラー剤のみの量を入力 → オキシ・プレックスは比率で自動加算';
 
   // カラー剤の比率を計算（dye_total_gに対する各グラムの割合）
   const dyeTotal=parseFloat(h.dye_total_g)||dd.reduce((s,d)=>s+parseFloat(d.gram||0),0);
@@ -1080,13 +1079,14 @@ function openRecordDetail(id){
     +(h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.6">'+h.memo.split('\n').join('<br>')+'</div>':'')
     // 総量入力（大きく）
     +'<div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px">'
-    +'<div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">仕上がり総量を変更</div>'
+    +'<div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">追加分を計算</div>'
+    +'<div style="font-size:11px;color:var(--orange);margin-bottom:10px">'+inputLabel+'</div>'
     +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<input id="detail-new-total" type="number" value="'+origTotal.toFixed(1)+'" min="1" step="1" style="width:80px;font-size:20px;font-weight:500;text-align:right;padding:8px 10px"/>'
+    +'<input id="detail-new-total" type="number" value="'+origInputVal.toFixed(1)+'" min="1" step="1" style="width:80px;font-size:20px;font-weight:500;text-align:right;padding:8px 10px"/>'
     +'<span style="font-size:16px;color:var(--text2)">g</span>'
-    +'<button class="btn-primary" style="flex:1;padding:10px" onclick="recalcDetail(&quot;'+id+'&quot;)">比率を保って再計算</button>'
+    +'<button class="btn-primary" style="flex:1;padding:10px" onclick="recalcDetail(&quot;'+id+'&quot;)">追加分を計算</button>'
     +'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">カラー剤の比率・オキシ倍率を保ったまま各グラム数を逆算します</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">'+inputHint+'</div>'
     +'</div>'
     // 配合テーブル（読み取り専用）
     +'<div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">現在の配合（比率は変更不可）</div>'
@@ -1120,10 +1120,18 @@ function recalcDetail(id){
   const dd=h.dyes||[],aa=h.additionals||[];
   const sumPctPlex=plexRatios.reduce((a,b)=>a+b,0);
 
-  // 総量からdyeTotalを逆算
-  // newTotal = dyeTotal*(1 + oxiMult + sumPctPlex*(1+oxiMult))
-  // = dyeTotal*(1+oxiMult)*(1+sumPctPlex)
-  const dyeTotal=newTotal/((1+oxiMult)*(1+sumPctPlex));
+  const oxiIncluded=h.oxi_included!==false;
+  // 入力値からdyeTotalを逆算
+  let dyeTotal;
+  if(oxiIncluded){
+    // 入力値 = カラー剤＋オキシ → dyeTotal*(1+oxiMult)*(1+sumPctPlex) が全体だが
+    // ここでは入力値 = カラー剤+オキシ のみ（プレックスは後付け）
+    // newTotal = dyeTotal + dyeTotal*oxiMult = dyeTotal*(1+oxiMult)
+    dyeTotal=newTotal/(1+oxiMult);
+  } else {
+    // 入力値 = カラー剤のみ
+    dyeTotal=newTotal;
+  }
   const oxiG=dyeTotal*oxiMult;
   const colorOxi=dyeTotal+oxiG;
   const dyeGrams=dyeRatios.map(r=>dyeTotal*r);
@@ -1765,6 +1773,15 @@ async function cleanOldRecords() {
   cutoff.setMonth(cutoff.getMonth() - 4);
   const cutoffStr = cutoff.toISOString().split('T')[0];
   await sb.from('records').delete().lt('date', cutoffStr);
+}
+
+function scrollHelpTo(id){
+  const body=document.getElementById('help-scroll-body');
+  const target=document.getElementById(id);
+  if(body&&target){
+    setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'start'}),50);
+  }
+  return false;
 }
 
 function openHelp(){
