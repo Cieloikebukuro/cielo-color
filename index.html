@@ -152,14 +152,21 @@ textarea{resize:none;height:56px;font-size:13px}
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('calc')">配合計算</button>
-    <button class="tab" onclick="showTab('zone')">塗り分け</button>
+    <button class="tab active" onclick="showTab('calc')">カラー</button>
+    <button class="tab" onclick="showTab('perm')">縮毛・デジパ</button>
     <button class="tab" onclick="showTab('calendar')">カレンダー</button>
     <button class="tab" onclick="showTab('history')">カルテ</button>
   </div>
 
-  <!-- CALC TAB -->
+  <!-- CALC TAB (カラー) -->
   <div class="scroll" id="tab-calc">
+    <!-- サブタブ：配合計算 / 塗り分け -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px">
+      <button id="sub-calc" onclick="showSubCalc('calc')" style="flex:1;padding:7px 0;font-size:12px;font-weight:500;border:none;background:var(--surface);border-radius:calc(var(--radius-sm) - 2px);cursor:pointer;font-family:inherit;color:var(--text);border:0.5px solid var(--border-tertiary)">配合計算</button>
+      <button id="sub-zone" onclick="showSubCalc('zone')" style="flex:1;padding:7px 0;font-size:12px;font-weight:400;border:none;background:transparent;border-radius:calc(var(--radius-sm) - 2px);cursor:pointer;font-family:inherit;color:var(--text3)">塗り分け</button>
+    </div>
+    <!-- 配合計算コンテンツ -->
+    <div id="sub-calc-content">
 
     <!-- スタイリスト選択 -->
     <div class="card" style="margin-bottom:12px">
@@ -257,40 +264,45 @@ textarea{resize:none;height:56px;font-size:13px}
     <div style="height:80px"></div>
   </div>
 
-  <!-- ZONE TAB -->
-  <div class="scroll" id="tab-zone" style="display:none">
+  <!-- ZONE内部要素（tab-calcのサブタブに移植済み） -->
+  <div id="tab-zone" style="display:none"></div>
 
-    <!-- パターン選択 -->
+  <!-- PERM TAB (縮毛・デジパ) -->
+  <div class="scroll" id="tab-perm" style="display:none">
+
+    <!-- スタイリスト選択 -->
     <div class="card">
-      <div class="card-title">施術パターン</div>
-      <div id="zone-pattern-selector" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-      <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)">
-        <div style="font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">薬剤（オキシ）の扱い</div>
-        <div style="display:flex;gap:6px">
-          <button class="toggle-opt active" id="zone-btn-incl" onclick="setZoneOxiMode(true)">総量に含む</button>
-          <button class="toggle-opt" id="zone-btn-excl" onclick="setZoneOxiMode(false)">総量に含まない</button>
-        </div>
+      <div class="card-title">担当スタイリスト</div>
+      <div id="perm-stylist-selector" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+
+    <!-- メニュー選択 -->
+    <div class="card">
+      <div class="card-title">メニュー</div>
+      <div style="display:flex;gap:6px">
+        <button class="toggle-opt active" id="perm-menu-縮毛矯正" onclick="selectPermMenu('縮毛矯正')">縮毛矯正</button>
+        <button class="toggle-opt" id="perm-menu-デジタルパーマ" onclick="selectPermMenu('デジタルパーマ')">デジタルパーマ</button>
       </div>
     </div>
 
-    <!-- ゾーン一覧（パターンに応じて動的生成） -->
-    <div id="zone-list"></div>
+    <!-- 薬剤ゾーン（動的生成） -->
+    <div id="perm-zone-list"></div>
 
     <!-- アシスタント・メモ -->
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <div class="memo-label">担当アシスタント</div>
-          <div id="zone-creator-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+          <div id="perm-creator-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
         </div>
         <div>
           <div class="memo-label">顧客番号</div>
-          <div id="zone-customer-no-display" style="font-size:22px;font-weight:500;color:var(--orange);padding-top:4px">—</div>
-          <div style="font-size:10px;color:var(--text3)" id="zone-customer-no-hint">保存時に自動採番</div>
+          <div id="perm-customer-no-display" style="font-size:22px;font-weight:500;color:var(--orange);padding-top:4px">—</div>
+          <div style="font-size:10px;color:var(--text3)" id="perm-customer-no-hint">保存時に自動採番</div>
         </div>
       </div>
       <div class="memo-label">お客様名・メモ</div>
-      <textarea id="zone-memo" placeholder="例: 田中さん　根元リタッチ＋毛先トリートメントカラー"></textarea>
+      <textarea id="perm-memo" placeholder="例: 田中さん　根元4cm 軟化弱め"></textarea>
     </div>
     <div style="height:80px"></div>
   </div>
@@ -678,6 +690,8 @@ function updateTopStylist(){
   updateCustomerNoPreview();
   renderZoneCreatorSelector();
   updateZoneCustomerNoPreview();
+  renderPermStylistSelector();
+  updatePermCustomerNoPreview();
 }
 
 function openStylistSheet(){renderStylistList();document.getElementById('stylist-overlay').classList.add('show');}
@@ -917,19 +931,22 @@ async function saveRecord(treatmentType){
 }
 
 function showTab(t){
-  ['calc','zone','calendar','history'].forEach(n=>{
-    document.getElementById('tab-'+n).style.display=n===t?'':'none';
+  ['calc','zone','perm','calendar','history'].forEach(n=>{
+    const el=document.getElementById('tab-'+n);
+    if(el)el.style.display=n===t?'':'none';
   });
   document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['calc','zone','calendar','history'][i]===t);
+    el.classList.toggle('active',['calc','perm','calendar','history'][i]===t);
   });
-  document.getElementById('bottom-cta').style.display=t==='calc'||t==='zone'?'':'none';
-  document.getElementById('bottom-cta').querySelector('button').onclick=
-    t==='zone'?calculateZone:calculate;
-  document.getElementById('bottom-cta').querySelector('button').textContent=
-    t==='zone'?'塗り分け配合を計算する':'配合を計算する';
+  const cta=document.getElementById('bottom-cta');
+  const ctaBtn=cta.querySelector('button');
+  cta.style.display=(['calc','zone','perm'].includes(t))?'':'none';
+  if(t==='zone'){ctaBtn.onclick=calculateZone;ctaBtn.textContent='塗り分け配合を計算する';}
+  else if(t==='perm'){ctaBtn.onclick=calculatePerm;ctaBtn.textContent='還元剤を計算する';}
+  else{ctaBtn.onclick=calculate;ctaBtn.textContent='配合を計算する';}
   currentTab=t;
   if(t==='zone'){renderZonePatternSelector();renderZoneList();renderZoneCreatorSelector();updateZoneCustomerNoPreview();}
+  if(t==='perm'){renderPermTab();}
   if(t==='calendar')renderCalendar();
   if(t==='history')renderHistory();
 }
@@ -1609,7 +1626,7 @@ function calculateZone() {
   document.getElementById('result-content').innerHTML = `
     <div style="background:var(--orange);padding:16px 20px">
       <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">合計総量（${zoneCurrentPattern.label}）</div>
-      <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;color:#fff">${totalGrandTotal.toFixed(1)}<span style="font-size:16px"> g</span></div>
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">'+totalG.toFixed(0)+'<span style="font-size:16px"> g 合計</span></div>'
       <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${stylist.name}</div>
       <div style="height:0.5px;background:rgba(255,255,255,.2);margin:12px 0"></div>
       <div class="bar-section" style="padding:0">${resultHTML}</div>
@@ -1773,6 +1790,275 @@ async function cleanOldRecords() {
   cutoff.setMonth(cutoff.getMonth() - 4);
   const cutoffStr = cutoff.toISOString().split('T')[0];
   await sb.from('records').delete().lt('date', cutoffStr);
+}
+
+// ─── PERM (縮毛・デジパ) ───
+const PERM_AGENTS = [
+  {id:'pink',   label:'ピンク', color:'#E2826A', bg:'#E2826A22'},
+  {id:'yellow', label:'黄色',   color:'#D4A84B', bg:'#D4A84B22'},
+  {id:'blue',   label:'水色',   color:'#6AADE2', bg:'#6AADE222'},
+  {id:'purple', label:'紫',     color:'#A86AE2', bg:'#A86AE222'},
+];
+
+let permMenu = '縮毛矯正';
+let permZones = []; // 部位名リスト（任意追加）
+let permData = {}; // {zoneName: {agentId, totalG}}
+let permCreator = localStorage.getItem('cielo_perm_creator') || null;
+
+function initPermData(zones) {
+  const newData = {};
+  zones.forEach(z => {
+    newData[z] = permData[z] || { agentId: 'pink', totalG: 50 };
+  });
+  permData = newData;
+}
+
+function renderPermTab() {
+  renderPermStylistSelector();
+  renderPermCreatorSelector();
+  updatePermCustomerNoPreview();
+  renderPermZoneList();
+}
+
+function renderPermStylistSelector() {
+  const el = document.getElementById('perm-stylist-selector');
+  if (!el) return;
+  el.innerHTML = stylists.map(s => {
+    const active = currentStylistId === s.id;
+    const st = 'display:flex;align-items:center;gap:7px;padding:8px 14px 8px 10px;border-radius:99px;cursor:pointer;font-family:inherit;transition:all .15s;'
+      + (active ? 'border:none;background:'+s.color+';' : 'border:0.5px solid var(--border2);background:var(--surface2);');
+    return '<button onclick="selectStylist(&quot;'+s.id+'&quot;)" style="'+st+'">'
+      + '<div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:'+(active?'rgba(255,255,255,.25)':s.color+'22')+';color:'+(active?'#fff':s.color)+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500">'+s.name.charAt(0)+'</div>'
+      + '<span style="font-size:13px;font-weight:'+(active?'500':'300')+';color:'+(active?'#fff':'var(--text2)')+';white-space:nowrap">'+s.name+'</span>'
+      + '</button>';
+  }).join('');
+}
+
+function renderPermCreatorSelector() {
+  const el = document.getElementById('perm-creator-selector');
+  if (!el) return;
+  el.innerHTML = CREATORS.map(c => {
+    const active = permCreator === c;
+    const st = 'padding:5px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap;'
+      + (active ? 'border:none;background:var(--orange);color:#fff;font-weight:500' : 'border:0.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:300');
+    return '<button onclick="selectPermCreator(&quot;'+c+'&quot;)" style="'+st+'">'+c+'</button>';
+  }).join('');
+}
+
+function selectPermCreator(name) {
+  permCreator = name;
+  localStorage.setItem('cielo_perm_creator', name);
+  renderPermCreatorSelector();
+}
+
+async function updatePermCustomerNoPreview() {
+  const stylist = currentStylistObj();
+  if (!stylist) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('records')
+    .select('customer_no').eq('stylist_id', stylist.id).eq('date', today)
+    .order('customer_no', { ascending: false }).limit(1);
+  const next = (data && data.length > 0 && data[0].customer_no) ? data[0].customer_no + 1 : 1;
+  const el = document.getElementById('perm-customer-no-display');
+  const hint = document.getElementById('perm-customer-no-hint');
+  if (el) el.textContent = String(next).padStart(2, '0');
+  if (hint) hint.textContent = '本日 ' + stylist.name + ' の ' + next + ' 番目';
+}
+
+function selectPermMenu(menu) {
+  permMenu = menu;
+  ['縮毛矯正','デジタルパーマ'].forEach(m => {
+    const btn = document.getElementById('perm-menu-'+m);
+    if (btn) btn.classList.toggle('active', m === menu);
+  });
+}
+
+function addPermZone() {
+  const name = prompt('部位名を入力してください（例: 根元、毛先、中間）');
+  if (!name || !name.trim()) return;
+  const n = name.trim();
+  if (permZones.includes(n)) { toast('同じ部位名がすでにあります'); return; }
+  permZones.push(n);
+  initPermData(permZones);
+  renderPermZoneList();
+}
+
+function removePermZone(zoneName) {
+  permZones = permZones.filter(z => z !== zoneName);
+  renderPermZoneList();
+}
+
+function renderPermZoneList() {
+  const el = document.getElementById('perm-zone-list');
+  if (!el) return;
+
+  // 部位追加ボタン
+  let html = '<div class="card" style="margin-bottom:12px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between">'
+    + '<div>'
+    + '<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px">部位</div>'
+    + '<div style="font-size:11px;color:var(--text3)">'+(permZones.length===0?'部位がありません。追加してください':'')+'</div>'
+    + '</div>'
+    + '<button class="btn-add" style="margin:0" onclick="addPermZone()"><span style="font-size:16px;line-height:1">+</span> 部位を追加</button>'
+    + '</div>'
+    + '</div>';
+
+  // 部位カード
+  html += permZones.map((zoneName, zi) => {
+    const z = permData[zoneName] || {};
+    const agentObj = PERM_AGENTS.find(a => a.id === (z.agentId||'pink')) || PERM_AGENTS[0];
+
+    // プルダウンのoptions
+    const agentOptions = PERM_AGENTS.map(a =>
+      '<option value="'+a.id+'"'+(z.agentId===a.id?' selected':'')+' style="color:'+a.color+'">'+a.label+'</option>'
+    ).join('');
+
+    return '<div class="card">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="width:10px;height:10px;border-radius:50%;background:'+agentObj.color+'"></div>'
+      + '<div style="font-size:13px;font-weight:500;color:var(--text)">'+zoneName+'</div>'
+      + '</div>'
+      + '<button onclick="removePermZone(&quot;'+zoneName+'&quot;)" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 8px">✕ 削除</button>'
+      + '</div>'
+      // 薬剤プルダウン
+      + '<div style="display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center">'
+      + '<select onchange="permData[&quot;'+zoneName+'&quot;].agentId=this.value;renderPermZoneList()" style="font-size:13px">'
+      + agentOptions
+      + '</select>'
+      // グラム入力
+      + '<div style="display:flex;align-items:center;gap:6px">'
+      + '<input type="number" value="'+(z.totalG||50)+'" min="1" step="1" style="width:52px" oninput="permData[&quot;'+zoneName+'&quot;].totalG=parseFloat(this.value)||50"/>'
+      + '<span style="font-size:12px;color:var(--text2);flex-shrink:0">g</span>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML = html;
+}
+
+function calculatePerm() {
+  const stylist = currentStylistObj();
+  if (!stylist) { toast('スタイリストを選択してください'); return; }
+  if (permZones.length === 0) { toast('部位を追加してください'); return; }
+
+  let resultHTML = '';
+  let totalG = 0;
+
+  permZones.forEach(zoneName => {
+    const z = permData[zoneName] || {};
+    const agentObj = PERM_AGENTS.find(a => a.id === (z.agentId||'pink')) || PERM_AGENTS[0];
+    const g = parseFloat(z.totalG) || 0;
+    totalG += g;
+
+    resultHTML += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;margin-bottom:8px">'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="width:10px;height:10px;border-radius:50%;background:'+agentObj.color+'"></div>'
+      + '<div>'
+      + '<div style="font-size:13px;font-weight:500;color:#fff">'+zoneName+'</div>'
+      + '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+agentObj.label+'</div>'
+      + '</div>'
+      + '</div>'
+      + '<div style="font-size:20px;font-weight:500;color:#fff">'+g.toFixed(0)+' g</div>'
+      + '</div>';
+  });
+
+  document.getElementById('result-content').innerHTML =
+    '<div style="background:var(--orange);padding:16px 20px">'
+    + '<div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">'+permMenu+'</div>'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">'+totalG.toFixed(0)+'<span style="font-size:16px"> g 合計</span></div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">'+stylist.name+'</div>'
+    + '<div style="height:0.5px;background:rgba(255,255,255,.2);margin:12px 0"></div>'
+    + resultHTML
+    + '</div>'
+    + '<div class="action-row">'
+    + '<button class="btn-primary" id="save-btn-perm" onclick="savePermRecord()">カルテに保存</button>'
+    + '</div>';
+
+  window._lastPerm = { menu: permMenu, zones: permZones.map(z => ({name:z,...permData[z]})), totalG, stylist: stylist.name };
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+async function savePermRecord() {
+  if (!window._lastPerm) return;
+  const r = window._lastPerm;
+  const stylist = currentStylistObj();
+  if (!stylist) return;
+  const btn = document.getElementById('save-btn-perm');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+  setSyncState('syncing');
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const { data: prevNos } = await sb.from('records')
+    .select('customer_no').eq('stylist_id', stylist.id).eq('date', today)
+    .order('customer_no', { ascending: false }).limit(1);
+  const customerNo = (prevNos && prevNos.length > 0 && prevNos[0].customer_no) ? prevNos[0].customer_no + 1 : 1;
+  const memo = document.getElementById('perm-memo')?.value || '';
+
+  // カルテ保存（縮毛・デジパ専用フィールドはzone_dataに）
+  const { data, error } = await sb.from('records').insert({
+    stylist_id: stylist.id, stylist_name: stylist.name, stylist_color: stylist.color,
+    date: today, memo: memo,
+    dyes: [],
+    oxi_g: 0, oxi_type: '—', oxi_mult: 0, oxi_included: false,
+    additionals: [],
+    grand_total: r.totalG, dye_total_g: 0,
+    creator: permCreator || null, customer_no: customerNo,
+    treatment_type: permMenu,
+    zone_pattern: permMenu,
+    zone_data: r.zones,
+  }).select().single();
+
+  if (error) { toast('保存に失敗しました'); setSyncState(''); if(btn){btn.disabled=false;btn.textContent='カルテに保存';} return; }
+  records.unshift(data);
+  setSyncState('ok');
+  closeResultSheet();
+  updatePermCustomerNoPreview();
+  toast('カルテに保存しました ✓ （' + stylist.name + ' ' + String(customerNo).padStart(2,'0') + '番）');
+}
+
+// カラーサブタブ切り替え
+function showSubCalc(sub) {
+  const calcContent = document.getElementById('sub-calc-content');
+  const zoneContent = document.getElementById('sub-zone-content');
+  const calcBtn = document.getElementById('sub-calc');
+  const zoneBtn = document.getElementById('sub-zone');
+  if (!calcContent || !zoneContent) return;
+  if (sub === 'calc') {
+    calcContent.style.display = '';
+    zoneContent.style.display = 'none';
+    calcBtn.style.background = 'var(--surface)';
+    calcBtn.style.fontWeight = '500';
+    calcBtn.style.color = 'var(--text)';
+    calcBtn.style.border = '0.5px solid var(--border2)';
+    zoneBtn.style.background = 'transparent';
+    zoneBtn.style.fontWeight = '400';
+    zoneBtn.style.color = 'var(--text3)';
+    zoneBtn.style.border = 'none';
+    document.getElementById('bottom-cta').querySelector('button').onclick = calculate;
+    document.getElementById('bottom-cta').querySelector('button').textContent = '配合を計算する';
+  } else {
+    calcContent.style.display = 'none';
+    zoneContent.style.display = '';
+    zoneBtn.style.background = 'var(--surface)';
+    zoneBtn.style.fontWeight = '500';
+    zoneBtn.style.color = 'var(--text)';
+    zoneBtn.style.border = '0.5px solid var(--border2)';
+    calcBtn.style.background = 'transparent';
+    calcBtn.style.fontWeight = '400';
+    calcBtn.style.color = 'var(--text3)';
+    calcBtn.style.border = 'none';
+    renderZonePatternSelector();
+    renderZoneList();
+    renderZoneCreatorSelector();
+    updateZoneCustomerNoPreview();
+    // zone-calc-stylist-selectorも更新
+    const zcs = document.getElementById('zone-calc-stylist-selector');
+    if (zcs) zcs.innerHTML = document.getElementById('calc-stylist-selector')?.innerHTML || '';
+    document.getElementById('bottom-cta').querySelector('button').onclick = calculateZone;
+    document.getElementById('bottom-cta').querySelector('button').textContent = '塗り分け配合を計算する';
+  }
 }
 
 function scrollHelpTo(id){
