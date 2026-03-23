@@ -220,6 +220,17 @@ textarea{resize:none;height:56px;font-size:13px}
     </div>
 
     <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <div class="memo-label">担当アシスタント</div>
+          <div id="creator-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+        </div>
+        <div>
+          <div class="memo-label">顧客番号</div>
+          <div id="customer-no-display" style="font-size:22px;font-weight:500;color:var(--orange);padding-top:4px">—</div>
+          <div style="font-size:10px;color:var(--text3)" id="customer-no-hint">保存時に自動採番</div>
+        </div>
+      </div>
       <div class="memo-label">お客様名・メモ</div>
       <textarea id="memo" placeholder="例: 田中さん　7N ベース　やや明るめ&#10;根元2cm リタッチ"></textarea>
     </div>
@@ -297,6 +308,8 @@ let stylists=[],records=[],dyes=[],additionals=[];
 let currentStylistId=localStorage.getItem('cielo_stylist')||null;
 let oxiIncluded=true,calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
 let calSelected=null,histFilter='all',currentTab='calc';
+let currentCreator=localStorage.getItem('cielo_creator')||null;
+const CREATORS=['あやね','さわ','みな'];
 
 function toast(msg){
   const el=document.getElementById('toast');
@@ -380,6 +393,46 @@ function renderCalcStylistSelector(){
   }).join('');
 }
 
+function renderCreatorSelector(){
+  const el=document.getElementById('creator-selector');
+  if(!el)return;
+  el.innerHTML=CREATORS.map(c=>{
+    const active=currentCreator===c;
+    return`<button onclick="selectCreator('${c}')" style="
+      padding:5px 14px;border-radius:99px;font-size:12px;font-family:inherit;cursor:pointer;
+      border:${active?'none':'0.5px solid var(--border2)'};
+      background:${active?'var(--orange)':'var(--surface2)'};
+      color:${active?'#fff':'var(--text2)'};
+      font-weight:${active?'500':'300'};
+      transition:all .15s;white-space:nowrap;
+    ">${c}</button>`;
+  }).join('');
+}
+
+function selectCreator(name){
+  currentCreator=name;
+  localStorage.setItem('cielo_creator',name);
+  renderCreatorSelector();
+  updateCustomerNoPreview();
+}
+
+async function updateCustomerNoPreview(){
+  const stylist=currentStylistObj();
+  if(!stylist)return;
+  const today=new Date().toISOString().split('T')[0];
+  const{data}=await sb.from('records')
+    .select('customer_no')
+    .eq('stylist_id',stylist.id)
+    .eq('date',today)
+    .order('customer_no',{ascending:false})
+    .limit(1);
+  const next=(data&&data.length>0&&data[0].customer_no)?data[0].customer_no+1:1;
+  const el=document.getElementById('customer-no-display');
+  const hint=document.getElementById('customer-no-hint');
+  if(el){el.textContent=String(next).padStart(2,'0');}
+  if(hint){hint.textContent='本日 '+stylist.name+' の '+next+' 番目';}
+}
+
 function updateTopStylist(){
   const s=currentStylistObj();
   if(!s)return;
@@ -390,6 +443,8 @@ function updateTopStylist(){
   av.style.color=s.color;
   nm.textContent=s.name;
   renderCalcStylistSelector();
+  renderCreatorSelector();
+  updateCustomerNoPreview();
 }
 
 function openStylistSheet(){renderStylistList();document.getElementById('stylist-overlay').classList.add('show');}
@@ -596,19 +651,31 @@ async function saveRecord(){
   btn.disabled=true;btn.textContent='保存中...';
   setSyncState('syncing');
   const now=new Date();
+  const today=now.toISOString().split('T')[0];
+  // 本日のスタイリストの最大customer_noを取得して+1
+  const{data:prevNos}=await sb.from('records')
+    .select('customer_no')
+    .eq('stylist_id',stylist.id)
+    .eq('date',today)
+    .order('customer_no',{ascending:false})
+    .limit(1);
+  const customerNo=(prevNos&&prevNos.length>0&&prevNos[0].customer_no)?prevNos[0].customer_no+1:1;
   const{data,error}=await sb.from('records').insert({
     stylist_id:stylist.id,stylist_name:stylist.name,stylist_color:stylist.color,
-    date:now.toISOString().split('T')[0],memo:r.memo,
+    date:today,memo:r.memo,
     dyes:dyes.map((d,i)=>({name:d.name||'カラー'+(i+1),ratio:d.ratio,pctOn:d.pctOn,pct:d.pct,gram:r.dyeGrams[i]})),
     oxi_g:r.oxiG,oxi_type:r.oxiType,oxi_mult:r.oxiMult,oxi_included:r.oxiIncluded,
     additionals:additionals.map((a,i)=>({type:a.type,name:a.name,pct:a.pct,gram:r.addGrams[i]})),
-    grand_total:r.grandTotal,dye_total_g:r.dyeTotalG
+    grand_total:r.grandTotal,dye_total_g:r.dyeTotalG,
+    creator:currentCreator||null,
+    customer_no:customerNo
   }).select().single();
   if(error){toast('保存に失敗しました');setSyncState('');btn.disabled=false;btn.textContent='カルテに保存';return;}
   records.unshift(data);
   setSyncState('ok');
   closeResultSheet();
-  toast('カルテに保存しました ✓');
+  updateCustomerNoPreview();
+  toast('カルテに保存しました ✓ （'+stylist.name+' '+String(customerNo).padStart(2,'0')+'番）');
 }
 
 function showTab(t){
@@ -688,14 +755,20 @@ function histItemHTML(h){
   const formula=dd.map(d=>d.name+' '+parseFloat(d.gram).toFixed(1)+'g').join(' : ')
     +' + オキシ'+parseFloat(h.oxi_g).toFixed(1)+'g'
     +(aa.length>0?' + '+aa.map(a=>a.type+' '+parseFloat(a.gram).toFixed(1)+'g').join(' + '):'');
-  return'<div class="hist-item"><div class="hist-top"><div class="hist-date">'+label+'</div>'
+  const noLabel=h.customer_no?String(h.customer_no).padStart(2,'0')+'番':'';
+  const creatorLabel=h.creator||'';
+  return'<div class="hist-item"><div class="hist-top">'
+    +'<div style="display:flex;align-items:center;gap:6px">'
+    +'<div class="hist-date">'+label+'</div>'
+    +(noLabel?'<span style="font-size:11px;font-weight:500;color:var(--orange);background:var(--orange-light);padding:2px 8px;border-radius:99px">'+noLabel+'</span>':'') 
+    +'</div>'
     +'<span class="hist-stylist" style="background:'+h.stylist_color+'22;color:'+h.stylist_color+'">'+h.stylist_name+'</span></div>'
+    +(creatorLabel?'<div style="font-size:11px;color:var(--text3);margin-bottom:4px">作成: '+creatorLabel+'</div>':'') 
     +(h.memo?'<div style="font-size:13px;color:var(--text);margin-bottom:3px">'+h.memo.split('\n')[0]+'</div>':'')
     +'<div class="hist-formula">'+formula+'</div>'
     +'<div style="font-size:12px;color:var(--text2);margin-top:4px">総量 <strong>'+parseFloat(h.grand_total).toFixed(1)+'g</strong></div>'
-    +'<div class="hist-actions"><button class="btn-ghost" onclick="loadRecord(\''+h.id+'\')">再現する</button>'
-    +'<button class="btn-ghost" onclick="deleteRecord(\''+h.id+'\')">削除</button></div></div>';
-}
+    +'<div class="hist-actions"><button class="btn-ghost" onclick="loadRecord(\\''+h.id+'\\')">再現する</button>'
+    +'<button class="btn-ghost" onclick="deleteRecord(\\''+h.id+'\\')">削除</button></div></div>';
 
 function loadRecord(id){
   const h=records.find(x=>x.id===id);if(!h)return;
