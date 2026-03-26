@@ -1837,26 +1837,32 @@ async function cleanOldRecords() {
 
 // ─── PERM (縮毛・デジパ) ───
 const PERM_AGENTS = [
-  {id:'pink',   label:'ピンク', color:'#E2826A', bg:'#E2826A22'},
-  {id:'yellow', label:'黄色',   color:'#D4A84B', bg:'#D4A84B22'},
-  {id:'blue',   label:'水色',   color:'#6AADE2', bg:'#6AADE222'},
-  {id:'purple', label:'紫',     color:'#A86AE2', bg:'#A86AE222'},
+  {id:'H',  label:'H（ピンク）',  color:'#E2826A', bg:'#E2826A22'},
+  {id:'N',  label:'N（黄色）',    color:'#D4A84B', bg:'#D4A84B22'},
+  {id:'S',  label:'S（水色）',    color:'#6AADE2', bg:'#6AADE222'},
+  {id:'EX', label:'EX（紫）',     color:'#A86AE2', bg:'#A86AE222'},
 ];
+const PERM_PARTS = ['新生部','根元','毛先'];
 
 let permMenu = '縮毛矯正';
-let permZones = []; // 部位名リスト（任意追加）
-let permData = {}; // {zoneName: {agentId, totalG}}
+// permItems: [{id, part, subPart, agents:[{id,agentId,ratio}], totalG}]
+let permItems = [];
+let _permNextId = 1;
+function newPermItem() {
+  return {
+    id: 'pi'+(++_permNextId),
+    part: '新生部',
+    subPart: '1',  // デジパ時は1/2/3、縮毛毛先時は毛先1/毛先2/毛先3
+    agents: [{id:'a'+_permNextId+'1', agentId:'H', ratio:1}],
+    totalG: 50,
+  };
+}
 let permCreator = localStorage.getItem('cielo_perm_creator') || null;
 
-function initPermData(zones) {
-  const newData = {};
-  zones.forEach(z => {
-    newData[z] = permData[z] || { agentId: 'pink', totalG: 50 };
-  });
-  permData = newData;
-}
-
 function renderPermTab() {
+  if (permItems.length === 0) {
+    permItems.push(newPermItem());
+  }
   renderPermStylistSelector();
   renderPermCreatorSelector();
   updatePermCustomerNoPreview();
@@ -1914,67 +1920,146 @@ function selectPermMenu(menu) {
     const btn = document.getElementById('perm-menu-'+m);
     if (btn) btn.classList.toggle('active', m === menu);
   });
-}
-
-function addPermZone() {
-  const name = prompt('部位名を入力してください（例: 根元、毛先、中間）');
-  if (!name || !name.trim()) return;
-  const n = name.trim();
-  if (permZones.includes(n)) { toast('同じ部位名がすでにあります'); return; }
-  permZones.push(n);
-  initPermData(permZones);
   renderPermZoneList();
 }
 
-function removePermZone(zoneName) {
-  permZones = permZones.filter(z => z !== zoneName);
+function addPermItem() {
+  permItems.push(newPermItem());
+  renderPermZoneList();
+}
+
+function removePermItem(itemId) {
+  permItems = permItems.filter(x => x.id !== itemId);
+  renderPermZoneList();
+}
+
+function addPermAgent(itemId) {
+  const item = permItems.find(x => x.id === itemId);
+  if (!item) return;
+  item.agents.push({id:'a'+Date.now(), agentId:'N', ratio:1});
+  renderPermZoneList();
+}
+
+function removePermAgent(itemId, agentId) {
+  const item = permItems.find(x => x.id === itemId);
+  if (!item || item.agents.length <= 1) return;
+  item.agents = item.agents.filter(a => a.id !== agentId);
   renderPermZoneList();
 }
 
 function renderPermZoneList() {
   const el = document.getElementById('perm-zone-list');
   if (!el) return;
+  const isDeji = permMenu === 'デジタルパーマ';
 
-  // 部位追加ボタン
+  const agentOptHtml = (selectedId) => PERM_AGENTS.map(a =>
+    '<option value="'+a.id+'"'+(selectedId===a.id?' selected':'')+'>'+a.label+'</option>'
+  ).join('');
+
   let html = '<div class="card" style="margin-bottom:12px">'
     + '<div style="display:flex;align-items:center;justify-content:space-between">'
-    + '<div>'
-    + '<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px">部位</div>'
-    + '<div style="font-size:11px;color:var(--text3)">'+(permZones.length===0?'部位がありません。追加してください':'')+'</div>'
-    + '</div>'
-    + '<button class="btn-add" style="margin:0" onclick="addPermZone()"><span style="font-size:16px;line-height:1">+</span> 部位を追加</button>'
+    + '<div style="font-size:13px;font-weight:500;color:var(--text)">薬剤</div>'
+    + '<button class="btn-add" style="margin:0" onclick="addPermItem()"><span style="font-size:16px;line-height:1">+</span> 追加</button>'
     + '</div>'
     + '</div>';
 
-  // 部位カード
-  html += permZones.map((zoneName, zi) => {
-    const z = permData[zoneName] || {};
-    const agentObj = PERM_AGENTS.find(a => a.id === (z.agentId||'pink')) || PERM_AGENTS[0];
+  html += permItems.map(item => {
+    const isMulti = item.agents.length > 1;
+    const accentColor = (PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0]).color;
 
-    // プルダウンのoptions
-    const agentOptions = PERM_AGENTS.map(a =>
-      '<option value="'+a.id+'"'+(z.agentId===a.id?' selected':'')+' style="color:'+a.color+'">'+a.label+'</option>'
-    ).join('');
+    // ── ヘッダー部分（部位 or 薬剤ラベル） ──
+    let headerLeft = '';
+    if (isDeji) {
+      // デジパ: 「薬剤」固定 ＋ 1/2/3プルダウン
+      const numOptions = ['1','2','3'].map(n =>
+        '<option value="'+n+'"'+(item.subPart===n?' selected':'')+'>'+n+'</option>'
+      ).join('');
+      headerLeft = '<div style="display:flex;align-items:center;gap:8px">'
+        + '<div style="width:8px;height:8px;border-radius:50%;background:'+accentColor+'"></div>'
+        + '<span style="font-size:13px;font-weight:500;color:var(--text)">薬剤</span>'
+        + '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).subPart=this.value" '
+        + 'style="font-size:12px;color:var(--orange);background:var(--orange-light);border:none;border-radius:99px;padding:2px 10px;cursor:pointer;font-family:inherit;font-weight:500">'
+        + numOptions
+        + '</select>'
+        + '</div>';
+    } else {
+      // 縮毛: 部位プルダウン（アイコン付きで視認しやすく）
+      const partOptions = PERM_PARTS.map(p =>
+        '<option value="'+p+'"'+(item.part===p?' selected':'')+'>'+p+'</option>'
+      ).join('');
+      const subPartOptions = ['毛先1','毛先2','毛先3'].map(s =>
+        '<option value="'+s+'"'+(item.subPart===s?' selected':'')+'>'+s+'</option>'
+      ).join('');
+      headerLeft = '<div style="display:flex;align-items:center;gap:8px">'
+        + '<div style="width:8px;height:8px;border-radius:50%;background:'+accentColor+'"></div>'
+        + '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).part=this.value;renderPermZoneList()" '
+        + 'style="font-size:13px;font-weight:500;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:99px;padding:4px 12px;cursor:pointer;font-family:inherit">'
+        + partOptions
+        + '</select>'
+        + (item.part==='毛先'
+          ? '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).subPart=this.value" '
+            + 'style="font-size:12px;color:var(--text2);background:transparent;border:0.5px solid var(--border2);border-radius:99px;padding:2px 8px;cursor:pointer;font-family:inherit">'
+            + subPartOptions + '</select>'
+          : '')
+        + '</div>';
+    }
+
+    // ── 薬剤入力エリア ──
+    let agentRows = '';
+    if (!isMulti) {
+      // 1種類: 薬剤プルダウン ＋ g入力
+      const a = item.agents[0];
+      const aObj = PERM_AGENTS.find(x => x.id === a.agentId) || PERM_AGENTS[0];
+      agentRows = '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">薬剤と使用量を入力</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center">'
+        + '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents[0].agentId=this.value;renderPermZoneList()" '
+        + 'style="font-size:13px;color:'+aObj.color+';font-weight:500;border-left:3px solid '+aObj.color+';padding-left:8px">'
+        + agentOptHtml(a.agentId)
+        + '</select>'
+        + '<div style="display:flex;align-items:center;gap:4px">'
+        + '<input type="number" value="'+(item.totalG||50)+'" min="1" step="1" style="width:52px"'
+        + ' oninput="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).totalG=parseFloat(this.value)||50"/>'
+        + '<span style="font-size:12px;color:var(--text2)">g</span>'
+        + '</div>'
+        + '</div>';
+    } else {
+      // 複数: 合計g先頭 ＋ 比率入力
+      const ratioSum = item.agents.reduce((s,a) => s+(parseFloat(a.ratio)||0), 0);
+      // ① 合計g数を先に表示
+      agentRows = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px">'
+        + '<span style="font-size:12px;color:var(--text2);flex:1">合計使用量</span>'
+        + '<input type="number" value="'+(item.totalG||50)+'" min="1" step="1" style="width:60px;font-size:16px;font-weight:500;text-align:right"'
+        + ' oninput="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).totalG=parseFloat(this.value)||50;renderPermZoneList()"/>'
+        + '<span style="font-size:13px;color:var(--text2)">g</span>'
+        + '</div>'
+        // ② 説明
+        + '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">薬剤ごとの比率を入力 — 各グラム数を自動計算</div>';
+      // ③ 各薬剤の比率行
+      agentRows += item.agents.map((a, ai) => {
+        const aObj = PERM_AGENTS.find(x => x.id === a.agentId) || PERM_AGENTS[0];
+        const gCalc = ratioSum > 0 ? (item.totalG * (parseFloat(a.ratio)||0) / ratioSum) : 0;
+        return '<div style="display:grid;grid-template-columns:1fr 52px auto auto;gap:6px;align-items:center;margin-bottom:6px">'
+          + '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents['+ai+'].agentId=this.value;renderPermZoneList()" '
+          + 'style="font-size:12px;color:'+aObj.color+';font-weight:500;border-left:3px solid '+aObj.color+';padding-left:6px">'
+          + agentOptHtml(a.agentId)
+          + '</select>'
+          + '<input type="number" value="'+(a.ratio||1)+'" min="0" step="0.5" placeholder="比率"'
+          + ' oninput="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents['+ai+'].ratio=parseFloat(this.value)||0;renderPermZoneList()" style="text-align:center"/>'
+          + '<div style="font-size:12px;color:var(--orange);font-weight:500;min-width:40px;text-align:right">'+gCalc.toFixed(1)+'g</div>'
+          + '<button onclick="removePermAgent(&quot;'+item.id+'&quot;,&quot;'+a.id+'&quot;)" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 4px">×</button>'
+          + '</div>';
+      }).join('');
+    }
 
     return '<div class="card">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      + headerLeft
       + '<div style="display:flex;align-items:center;gap:8px">'
-      + '<div style="width:10px;height:10px;border-radius:50%;background:'+agentObj.color+'"></div>'
-      + '<div style="font-size:13px;font-weight:500;color:var(--text)">'+zoneName+'</div>'
-      + '</div>'
-      + '<button onclick="removePermZone(&quot;'+zoneName+'&quot;)" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 8px">✕ 削除</button>'
-      + '</div>'
-      // 薬剤プルダウン
-      + '<div style="display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center">'
-      + '<select onchange="permData[&quot;'+zoneName+'&quot;].agentId=this.value;renderPermZoneList()" style="font-size:13px">'
-      + agentOptions
-      + '</select>'
-      // グラム入力
-      + '<div style="display:flex;align-items:center;gap:6px">'
-      + '<input type="number" value="'+(z.totalG||50)+'" min="1" step="1" style="width:52px" oninput="permData[&quot;'+zoneName+'&quot;].totalG=parseFloat(this.value)||50"/>'
-      + '<span style="font-size:12px;color:var(--text2);flex-shrink:0">g</span>'
+      + '<button onclick="addPermAgent(&quot;'+item.id+'&quot;)" style="font-size:11px;color:var(--orange);background:var(--orange-light);border:none;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit">＋薬剤</button>'
+      + '<button onclick="removePermItem(&quot;'+item.id+'&quot;)" style="font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 4px">✕</button>'
       + '</div>'
       + '</div>'
+      + agentRows
       + '</div>';
   }).join('');
 
@@ -1984,26 +2069,48 @@ function renderPermZoneList() {
 function calculatePerm() {
   const stylist = currentStylistObj();
   if (!stylist) { toast('スタイリストを選択してください'); return; }
-  if (permZones.length === 0) { toast('部位を追加してください'); return; }
+  if (permItems.length === 0) { toast('薬剤を追加してください'); return; }
 
   let resultHTML = '';
   let totalG = 0;
 
-  permZones.forEach(zoneName => {
-    const z = permData[zoneName] || {};
-    const agentObj = PERM_AGENTS.find(a => a.id === (z.agentId||'pink')) || PERM_AGENTS[0];
-    const g = parseFloat(z.totalG) || 0;
+  permItems.forEach(item => {
+    const g = parseFloat(item.totalG) || 0;
     totalG += g;
+    const partLabel = item.part === '毛先' ? item.subPart : item.part;
+    const isMulti = item.agents.length > 1;
+    const ratioSum = item.agents.reduce((s,a) => s+(parseFloat(a.ratio)||0), 0);
+    const accentColor = (PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0]).color;
 
-    resultHTML += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;margin-bottom:8px">'
+    let agentDetail = '';
+    if (!isMulti) {
+      const aObj = PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0];
+      agentDetail = '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+aObj.label+'</div>';
+    } else {
+      const ratioStr = item.agents.map(a => (parseFloat(a.ratio)||0)).join(' : ');
+      const names = item.agents.map(a => (PERM_AGENTS.find(x=>x.id===a.agentId)||PERM_AGENTS[0]).id).join(' / ');
+      agentDetail = '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+names+' = '+ratioStr+'</div>';
+      // 各剤グラム
+      agentDetail += '<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">';
+      item.agents.forEach(a => {
+        const gSub = ratioSum > 0 ? g * (parseFloat(a.ratio)||0) / ratioSum : 0;
+        const aObj = PERM_AGENTS.find(x=>x.id===a.agentId) || PERM_AGENTS[0];
+        agentDetail += '<span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:99px;padding:2px 8px;color:#fff">'+aObj.id+' '+gSub.toFixed(1)+'g</span>';
+      });
+      agentDetail += '</div>';
+    }
+
+    resultHTML += '<div style="background:rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;margin-bottom:8px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
       + '<div style="display:flex;align-items:center;gap:8px">'
-      + '<div style="width:10px;height:10px;border-radius:50%;background:'+agentObj.color+'"></div>'
+      + '<div style="width:10px;height:10px;border-radius:50%;background:'+accentColor+';flex-shrink:0;margin-top:3px"></div>'
       + '<div>'
-      + '<div style="font-size:13px;font-weight:500;color:#fff">'+zoneName+'</div>'
-      + '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+agentObj.label+'</div>'
+      + '<div style="font-size:13px;font-weight:500;color:#fff">'+partLabel+'</div>'
+      + agentDetail
       + '</div>'
       + '</div>'
-      + '<div style="font-size:20px;font-weight:500;color:#fff">'+g.toFixed(0)+' g</div>'
+      + '<div style="font-size:20px;font-weight:500;color:#fff;flex-shrink:0">'+g.toFixed(0)+' g</div>'
+      + '</div>'
       + '</div>';
   });
 
@@ -2019,7 +2126,7 @@ function calculatePerm() {
     + '<button class="btn-primary" id="save-btn-perm" onclick="savePermRecord()">カルテに保存</button>'
     + '</div>';
 
-  window._lastPerm = { menu: permMenu, zones: permZones.map(z => ({name:z,...permData[z]})), totalG, stylist: stylist.name };
+  window._lastPerm = { menu: permMenu, items: permItems.map(x=>({...x})), totalG, stylist: stylist.name };
   document.getElementById('result-overlay').classList.add('show');
 }
 
@@ -2050,7 +2157,7 @@ async function savePermRecord() {
     creator: permCreator || null, customer_no: customerNo,
     treatment_type: permMenu,
     zone_pattern: permMenu,
-    zone_data: r.zones,
+    zone_data: r.items,
   }).select().single();
 
   if (error) { toast('保存に失敗しました'); setSyncState(''); if(btn){btn.disabled=false;btn.textContent='カルテに保存';} return; }
