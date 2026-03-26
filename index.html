@@ -124,6 +124,8 @@ textarea{resize:none;height:56px;font-size:13px}
 .col-head:first-child{text-align:left}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1c1a17;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
+.reset-tab-btn{padding:12px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;text-align:left;font-family:inherit;transition:all .15s;width:100%}
+.reset-tab-btn:active{background:var(--surface);opacity:.8}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
 .sync-dot.syncing{background:var(--orange);animation:pulse 1s infinite}
 .sync-dot.ok{background:#5EC97B}
@@ -142,6 +144,7 @@ textarea{resize:none;height:56px;font-size:13px}
       <div class="sync-dot" id="sync-dot"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="openResetConfirm()" style="height:28px;padding:0 10px;border-radius:99px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:11px;color:var(--text3);font-family:inherit;flex-shrink:0;letter-spacing:.02em">リセット</button>
       <button onclick="openHelp()" style="width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0">?</button>
       <div class="stylist-pill" onclick="openStylistSheet()">
         <div class="stylist-avatar" id="top-avatar">—</div>
@@ -377,7 +380,10 @@ textarea{resize:none;height:56px;font-size:13px}
   </div>
 
   <div class="bottom-cta" id="bottom-cta">
-    <button class="btn-primary" onclick="calculate()">配合を計算する</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" id="reset-btn" onclick="document.getElementById('reset-overlay').classList.add('show')" style="flex-shrink:0;border:0.5px solid var(--border2);color:var(--text3)">リセット</button>
+      <button class="btn-primary" id="calc-btn" onclick="calculate()" style="flex:1">配合を計算する</button>
+    </div>
   </div>
 </div>
 
@@ -402,6 +408,36 @@ textarea{resize:none;height:56px;font-size:13px}
       <button class="btn-ghost" onclick="closeResultSheet()">閉じる</button>
     </div>
     <div id="result-content" style="padding:0 0 20px"></div>
+  </div>
+</div>
+
+<!-- RESET CONFIRM SHEET -->
+<div class="overlay" id="reset-overlay" onclick="closeResetConfirm(event)">
+  <div class="sheet" style="max-height:auto">
+    <div class="sheet-handle"></div>
+    <div style="padding:20px">
+      <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:6px">入力をリセット</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6">現在の画面の入力内容をすべて消去します。<br>カルテに保存済みのデータは削除されません。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button onclick="resetCurrentTab('calc')" class="reset-tab-btn">
+          <div style="font-size:13px;font-weight:500">配合計算</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">カラー剤・オキシ・メモ</div>
+        </button>
+        <button onclick="resetCurrentTab('zone')" class="reset-tab-btn">
+          <div style="font-size:13px;font-weight:500">塗り分け</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">ゾーン・配合</div>
+        </button>
+        <button onclick="resetCurrentTab('perm')" class="reset-tab-btn">
+          <div style="font-size:13px;font-weight:500">縮毛・デジパ</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">薬剤・部位</div>
+        </button>
+        <button onclick="resetCurrentTab('all')" class="reset-tab-btn" style="border-color:var(--orange);background:var(--orange-light)">
+          <div style="font-size:13px;font-weight:500;color:var(--orange)">すべてリセット</div>
+          <div style="font-size:11px;color:var(--orange);opacity:.7;margin-top:2px">全画面まとめて</div>
+        </button>
+      </div>
+      <button class="btn-ghost" style="width:100%" onclick="document.getElementById('reset-overlay').classList.remove('show')">キャンセル</button>
+    </div>
   </div>
 </div>
 
@@ -597,7 +633,7 @@ function toggleOxiCustom(checked) {
 let stylists=[],records=[],dyes=[],additionals=[];
 let currentStylistId=localStorage.getItem('cielo_stylist')||null;
 let oxiIncluded=true,calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
-let calSelected=null,histFilter='all',currentTab='calc';
+let calSelected=null,histFilter='all',currentTab='calc',currentSubTab='calc';
 let currentCreator=localStorage.getItem('cielo_creator')||null;
 const CREATORS=['あやね','さわ','みな'];
 
@@ -982,11 +1018,12 @@ function showTab(t){
     el.classList.toggle('active',['calc','perm','calendar','history'][i]===t);
   });
   const cta=document.getElementById('bottom-cta');
-  const ctaBtn=cta.querySelector('button');
+  const ctaBtn=document.getElementById('calc-btn');
+  const resetBtn=document.getElementById('reset-btn');
   cta.style.display=(['calc','zone','perm'].includes(t))?'':'none';
-  if(t==='zone'){ctaBtn.onclick=calculateZone;ctaBtn.textContent='塗り分け配合を計算する';}
-  else if(t==='perm'){ctaBtn.onclick=calculatePerm;ctaBtn.textContent='還元剤を計算する';}
-  else{ctaBtn.onclick=calculate;ctaBtn.textContent='配合を計算する';}
+  if(t==='zone'){ctaBtn.onclick=calculateZone;ctaBtn.textContent='塗り分け配合を計算する';if(resetBtn)resetBtn.onclick=resetZone;}
+  else if(t==='perm'){ctaBtn.onclick=calculatePerm;ctaBtn.textContent='還元剤を計算する';if(resetBtn)resetBtn.onclick=resetPerm;}
+  else{ctaBtn.onclick=calculate;ctaBtn.textContent='配合を計算する';if(resetBtn)resetBtn.onclick=resetCalc;}
   currentTab=t;
   if(t==='zone'){renderZonePatternSelector();renderZoneList();renderZoneCreatorSelector();updateZoneCustomerNoPreview();}
   if(t==='perm'){renderPermTab();}
@@ -2170,6 +2207,7 @@ async function savePermRecord() {
 
 // カラーサブタブ切り替え
 function showSubCalc(sub) {
+  currentSubTab = sub;
   const calcContent = document.getElementById('sub-calc-content');
   const zoneContent = document.getElementById('sub-zone-content');
   const calcBtn = document.getElementById('sub-calc');
@@ -2186,8 +2224,9 @@ function showSubCalc(sub) {
     zoneBtn.style.fontWeight = '400';
     zoneBtn.style.color = 'var(--text3)';
     zoneBtn.style.border = 'none';
-    document.getElementById('bottom-cta').querySelector('button').onclick = calculate;
-    document.getElementById('bottom-cta').querySelector('button').textContent = '配合を計算する';
+    const cb1=document.getElementById('calc-btn'),rb1=document.getElementById('reset-btn');
+    if(cb1){cb1.onclick=calculate;cb1.textContent='配合を計算する';}
+    if(rb1)rb1.onclick=resetCalc;
   } else {
     calcContent.style.display = 'none';
     zoneContent.style.display = '';
@@ -2206,9 +2245,75 @@ function showSubCalc(sub) {
     // スタイリスト選択を同期
     const zcs = document.getElementById('calc-stylist-selector-zone');
     if (zcs) zcs.innerHTML = document.getElementById('calc-stylist-selector')?.innerHTML || '';
-    document.getElementById('bottom-cta').querySelector('button').onclick = calculateZone;
-    document.getElementById('bottom-cta').querySelector('button').textContent = '塗り分け配合を計算する';
+    const cb2=document.getElementById('calc-btn'),rb2=document.getElementById('reset-btn');
+    if(cb2){cb2.onclick=calculateZone;cb2.textContent='塗り分け配合を計算する';}
+    if(rb2)rb2.onclick=resetZone;
   }
+}
+
+// ─── RESET ───
+function openResetConfirm() {
+  document.getElementById('reset-overlay').classList.add('show');
+}
+
+function closeResetConfirm(e) {
+  if (e.target === document.getElementById('reset-overlay'))
+    document.getElementById('reset-overlay').classList.remove('show');
+}
+
+// ─── RESET FUNCTIONS ───
+function resetCurrentTab(target) {
+  const t = target || (currentTab === 'calc' && currentSubTab === 'zone' ? 'zone' : currentTab);
+  if (t === 'all') { resetCalc(); resetZone(); resetPerm(); return; }
+  if (t === 'calc') resetCalc();
+  else if (t === 'zone') resetZone();
+  else if (t === 'perm') resetPerm();
+  const overlay = document.getElementById('reset-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function resetCalc() {
+  if (!confirm('入力内容をリセットしますか？')) return;
+  dyes = [{name:'',ratio:1,pctOn:false,pct:10},{name:'',ratio:1,pctOn:false,pct:10}];
+  additionals = [];
+  document.getElementById('total-g').value = 50;
+  setOxiMode(true);
+  const oxiType = document.getElementById('oxi-type');
+  if (oxiType) oxiType.value = '6%';
+  const oxiMult = document.getElementById('oxi-mult');
+  if (oxiMult) oxiMult.value = '1';
+  const oxiCustom = document.getElementById('oxi-custom-check');
+  if (oxiCustom) { oxiCustom.checked = false; toggleOxiCustom(false); }
+  document.getElementById('memo').value = '';
+  renderDyes();
+  renderAdditionals();
+  updateOxiHint();
+  toast('リセットしました');
+}
+
+function resetZone() {
+  if (!confirm('塗り分けの入力内容をリセットしますか？')) return;
+  zoneCurrentPattern = ZONE_PATTERNS[0];
+  zoneData = {};
+  zoneOxiIncluded = true;
+  initZoneData(zoneCurrentPattern);
+  document.getElementById('zone-memo').value = '';
+  const zbi = document.getElementById('zone-btn-incl');
+  const zbe = document.getElementById('zone-btn-excl');
+  if (zbi) zbi.classList.add('active');
+  if (zbe) zbe.classList.remove('active');
+  renderZonePatternSelector();
+  renderZoneList();
+  toast('リセットしました');
+}
+
+function resetPerm() {
+  if (!confirm('縮毛・デジパの入力内容をリセットしますか？')) return;
+  permItems = [newPermItem()];
+  const memo = document.getElementById('perm-memo');
+  if (memo) memo.value = '';
+  renderPermZoneList();
+  toast('リセットしました');
 }
 
 function scrollHelpTo(id){
