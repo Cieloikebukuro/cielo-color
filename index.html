@@ -869,14 +869,17 @@ function renderDyes(){
         style="${d.pctOn?'opacity:.25;pointer-events:none':''}"/>
       <div class="pct-wrap">
         <button class="pct-btn ${d.pctOn?'on':''}" onclick="togglePct(${i})">%</button>
-        ${d.pctOn
-          ?'<input type="number" value="'+d.pct+'" min="0" step="1" style="width:44px" oninput="dyes['+i+'].pct=parseFloat(this.value)||0;updatePreview()"/>'
-          :'<div style="width:4px"></div>'}
       </div>
       <input type="number" id="dye-g-${i}" readonly placeholder="—"/>
       <button class="btn-icon" onclick="removeDye(${i})">×</button>
     </div>
-    ${d.pctOn?'<div class="pct-note">カラー剤合計の '+d.pct+'% で計算</div>':''}
+    ${d.pctOn?`
+    <div style="display:flex;align-items:center;gap:8px;margin:-4px 0 6px;padding:6px 10px;background:var(--orange-light);border-radius:var(--radius-sm)">
+      <span style="font-size:11px;color:var(--orange);flex:1">カラー剤合計の何%で計算</span>
+      <button onclick="dyes[${i}].pct=Math.max(5,(dyes[${i}].pct||10)-5);renderDyes()" style="width:28px;height:28px;border-radius:50%;border:0.5px solid var(--orange-mid);background:transparent;color:var(--orange);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit">−</button>
+      <span style="font-size:18px;font-weight:500;color:var(--orange);min-width:36px;text-align:center">${d.pct}%</span>
+      <button onclick="dyes[${i}].pct=Math.min(100,(dyes[${i}].pct||10)+5);renderDyes()" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--orange);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit">＋</button>
+    </div>`:''}
   `).join('');
   updatePreview();
 }
@@ -1552,15 +1555,16 @@ function renderZoneDyes(zoneName, zi) {
       <div class="pct-wrap">
         <button class="pct-btn ${d.pctOn?'on':''}"
           onclick="zoneData['${zoneName}'].dyes[${i}].pctOn=!zoneData['${zoneName}'].dyes[${i}].pctOn;renderZoneDyes('${zoneName}',${zi})">%</button>
-        ${d.pctOn
-          ? `<input type="number" value="${d.pct}" min="0" step="1" style="width:44px"
-              oninput="zoneData['${zoneName}'].dyes[${i}].pct=parseFloat(this.value)||0"/>`
-          : '<div style="width:4px"></div>'}
       </div>
       <input type="number" id="zone-dye-g-${zi}-${i}" readonly placeholder="—"/>
       <button class="btn-icon" onclick="removeZoneDye('${zoneName}',${zi},${i})">×</button>
     </div>
-    ${d.pctOn ? `<div class="pct-note">カラー剤合計の ${d.pct}% で計算</div>` : ''}
+    ${d.pctOn ? '<div style="display:flex;align-items:center;gap:8px;margin:-4px 0 6px;padding:6px 10px;background:var(--orange-light);border-radius:var(--radius-sm)">'
+      + '<span style="font-size:11px;color:var(--orange);flex:1">カラー剤合計の何%で計算</span>'
+      + '<button onclick="zoneData[\''+zoneName+'\'].dyes['+i+'].pct=Math.max(5,(zoneData[\''+zoneName+'\'].dyes['+i+'].pct||10)-5);renderZoneDyes(\''+zoneName+'\','+zi+')" style="width:28px;height:28px;border-radius:50%;border:0.5px solid var(--orange-mid);background:transparent;color:var(--orange);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit">−</button>'
+      + '<span style="font-size:18px;font-weight:500;color:var(--orange);min-width:36px;text-align:center">'+d.pct+'%</span>'
+      + '<button onclick="zoneData[\''+zoneName+'\'].dyes['+i+'].pct=Math.min(100,(zoneData[\''+zoneName+'\'].dyes['+i+'].pct||10)+5);renderZoneDyes(\''+zoneName+'\','+zi+')" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--orange);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit">＋</button>'
+      + '</div>' : ''}
   `).join('');
 }
 
@@ -1903,7 +1907,7 @@ function newPermItem() {
     id: 'pi'+(++_permNextId),
     part: '新生部',
     subPart: '1',  // デジパ時は1/2/3、縮毛毛先時は毛先1/毛先2/毛先3
-    agents: [{id:'a'+_permNextId+'1', agentId:'H', ratio:1}],
+    agents: [{id:'a'+_permNextId+'1', agentId:'H', ratio:1, pctOn:false, pct:10}],
     totalG: 50,
   };
 }
@@ -1986,7 +1990,7 @@ function removePermItem(itemId) {
 function addPermAgent(itemId) {
   const item = permItems.find(x => x.id === itemId);
   if (!item) return;
-  item.agents.push({id:'a'+Date.now(), agentId:'N', ratio:1});
+  item.agents.push({id:'a'+Date.now(), agentId:'N', ratio:1, pctOn:false, pct:10});
   renderPermZoneList();
 }
 
@@ -2060,8 +2064,10 @@ function renderPermZoneList() {
       // 1種類: 薬剤プルダウン ＋ g入力
       const a = item.agents[0];
       const aObj = PERM_AGENTS.find(x => x.id === a.agentId) || PERM_AGENTS[0];
+      const pctOn0 = a.pctOn||false;
+      const pct0 = a.pct||10;
       agentRows = '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">薬剤と使用量を入力</div>'
-        + '<div style="display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center">'
+        + '<div style="display:grid;grid-template-columns:1fr 80px auto;gap:8px;align-items:center">'
         + '<select onchange="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents[0].agentId=this.value;renderPermZoneList()" '
         + 'style="font-size:13px;color:'+aObj.color+';font-weight:500;border-left:3px solid '+aObj.color+';padding-left:8px">'
         + agentOptHtml(a.agentId)
@@ -2071,7 +2077,17 @@ function renderPermZoneList() {
         + ' oninput="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).totalG=parseFloat(this.value)||50"/>'
         + '<span style="font-size:12px;color:var(--text2)">g</span>'
         + '</div>'
-        + '</div>';
+        + '<button onclick="permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents[0].pctOn=!permItems.find(x=>x.id===&quot;'+item.id+'&quot;).agents[0].pctOn;renderPermZoneList()" '
+        + 'style="padding:5px 10px;font-size:11px;border-radius:99px;font-family:inherit;cursor:pointer;white-space:nowrap;transition:all .15s;'
+        + (pctOn0 ? 'border:none;background:var(--orange-light);color:var(--orange)' : 'border:0.5px solid var(--border2);background:transparent;color:var(--text3)')
+        + '">%</button>'
+        + '</div>'
+        + (pctOn0 ? '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 10px;background:var(--orange-light);border-radius:var(--radius-sm)">'
+          + '<span style="font-size:11px;color:var(--orange);flex:1">カラー剤合計の何%で計算</span>'
+          + '<button onclick="var it=permItems.find(x=>x.id===&quot;'+item.id+'&quot;);it.agents[0].pct=Math.max(5,(it.agents[0].pct||10)-5);renderPermZoneList()" style="width:28px;height:28px;border-radius:50%;border:0.5px solid var(--orange-mid);background:transparent;color:var(--orange);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit">−</button>'
+          + '<span style="font-size:18px;font-weight:500;color:var(--orange);min-width:36px;text-align:center">'+pct0+'%</span>'
+          + '<button onclick="var it=permItems.find(x=>x.id===&quot;'+item.id+'&quot;);it.agents[0].pct=Math.min(100,(it.agents[0].pct||10)+5);renderPermZoneList()" style="width:28px;height:28px;border-radius:50%;border:none;background:var(--orange);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit">＋</button>'
+          + '</div>' : '');
     } else {
       // 複数: 合計g先頭 ＋ 比率入力
       const ratioSum = item.agents.reduce((s,a) => s+(parseFloat(a.ratio)||0), 0);
