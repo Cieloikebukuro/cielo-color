@@ -388,7 +388,7 @@ textarea{resize:none;height:56px;font-size:13px}
 </div>
 
 <!-- TREATMENT TYPE SHEET -->
-<div class="overlay" id="treatment-overlay">
+<div class="overlay" id="treatment-overlay" onclick="if(event.target===this){this.classList.remove('show')}">
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div style="padding:0 20px 14px;border-bottom:0.5px solid var(--border)">
@@ -1856,8 +1856,11 @@ function selectTreatmentType(id) {
 }
 
 async function executeSave() {
+  // 両シートを先に閉じる
   document.getElementById('treatment-overlay').classList.remove('show');
   document.getElementById('result-overlay').classList.remove('show');
+  // 少し待ってからsave（DOMの更新を待つ）
+  await new Promise(r => setTimeout(r, 80));
   if (_treatmentSaveMode === 'zone') {
     await saveZoneRecord(_selectedTreatmentType);
   } else {
