@@ -930,10 +930,12 @@ function calculate(){
   const B=oxiIncluded
     ?totalInput/((1+sumPctDye)*(1+oxiMult)*(1+sumPctPlex))
     :totalInput/(1+sumPctDye);
-  const dyeTotalG=B*(1+sumPctDye);
-  const oxiG=dyeTotalG*oxiMult;
+  const dyeGramsRaw=dyes.map(d=>d.pctOn?B*(parseFloat(d.pct)||0)/100:ratioSum>0?B*(parseFloat(d.ratio)||0)/ratioSum:0);
+  // 表示に合わせて丸めた値でdyeTotalを再計算（表示と計算の整合性を保つ）
+  const dyeGrams=dyeGramsRaw.map(g=>g>=1?Math.round(g):Math.round(g*10)/10);
+  const dyeTotalG=dyeGrams.reduce((a,b)=>a+b,0);
+  const oxiG=Math.round(dyeTotalG*oxiMult*(oxiMult>=1?1:10))/(oxiMult>=1?1:10);
   const colorOxiTotal=dyeTotalG+oxiG;
-  const dyeGrams=dyes.map(d=>d.pctOn?B*(parseFloat(d.pct)||0)/100:ratioSum>0?B*(parseFloat(d.ratio)||0)/ratioSum:0);
   const addGrams=additionals.map(a=>colorOxiTotal*(parseFloat(a.pct)||0)/100);
   const grandTotal=dyeTotalG+oxiG+addGrams.reduce((a,b)=>a+b,0);
   const addTotal=addGrams.reduce((a,b)=>a+b,0);
@@ -1092,9 +1094,9 @@ function setHistFilter(id){
 function histItemHTML(h){
   const label=new Date(h.date+'T00:00:00').toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
   const dd=h.dyes||[],aa=h.additionals||[];
-  const formula=dd.map(d=>d.name+' '+parseFloat(d.gram).toFixed(1)+'g').join(' : ')
-    +' + オキシ'+parseFloat(h.oxi_g).toFixed(1)+'g'
-    +(aa.length>0?' + '+aa.map(a=>a.type+' '+parseFloat(a.gram).toFixed(1)+'g').join(' + '):'');
+  const formula=dd.map(d=>d.name+' '+fmtG(d.gram)+'g').join(' : ')
+    +' + オキシ'+fmtG(h.oxi_g)+'g'
+    +(aa.length>0?' + '+aa.map(a=>a.type+' '+fmtG(a.gram)+'g').join(' + '):'');
   const noLabel=h.customer_no?String(h.customer_no).padStart(2,'0')+'番':'';
   const creatorLabel=h.creator||'';
   const zoneLabel=h.zone_pattern?'['+h.zone_pattern+'] ':'';
@@ -1156,15 +1158,15 @@ function openRecordDetail(id){
     const pct=dyeTotal>0?(parseFloat(d.gram||0)/dyeTotal*100).toFixed(0):'—';
     tableRows+='<tr><td><div class="nm"><div class="dot" style="background:'+['#E2826A','#6AADE2','#5EC97B','#D4A84B','#A86AE2'][i%5]+'"></div>'+(d.name||'カラー'+(i+1))+'</div></td>'
       +'<td class="gv" style="color:var(--text2);font-size:12px">'+pct+'%</td>'
-      +'<td class="pv" id="detail-g-dye-'+i+'">'+parseFloat(d.gram||0).toFixed(1)+' g</td></tr>';
+      +'<td class="pv" id="detail-g-dye-'+i+'">'+fmtG(d.gram||0)+' g</td></tr>';
   });
   tableRows+='<tr><td><div class="nm"><div class="dot" style="background:#A0BCCC"></div>'+(h.oxi_type||'オキシ')+'</div></td>'
     +'<td class="gv" style="color:var(--text2);font-size:12px">×'+oxiMult+'</td>'
-    +'<td class="pv" id="detail-g-oxi">'+parseFloat(h.oxi_g||0).toFixed(1)+' g</td></tr>';
+    +'<td class="pv" id="detail-g-oxi">'+fmtG(h.oxi_g||0)+' g</td></tr>';
   aa.forEach((a,i)=>{
     tableRows+='<tr><td><div class="nm"><div class="dot" style="background:#B0CCAA"></div>'+(a.type)+(a.name?' '+a.name:'')+'</div></td>'
       +'<td class="gv" style="color:var(--text2);font-size:12px">'+((plexRatios[i]||0)*100).toFixed(0)+'%</td>'
-      +'<td class="pv" id="detail-g-add-'+i+'">'+parseFloat(a.gram||0).toFixed(1)+' g</td></tr>';
+      +'<td class="pv" id="detail-g-add-'+i+'">'+fmtG(a.gram||0)+' g</td></tr>';
   });
 
   document.getElementById('record-detail-content').innerHTML=
@@ -1229,25 +1231,26 @@ function recalcDetail(id){
     // 入力値 = カラー剤のみ
     dyeTotal=newTotal;
   }
-  const oxiG=dyeTotal*oxiMult;
-  const colorOxi=dyeTotal+oxiG;
-  const dyeGrams=dyeRatios.map(r=>dyeTotal*r);
+  const dyeGrams=dyeRatios.map(r=>{const raw=dyeTotal*r;return raw>=1?Math.round(raw):Math.round(raw*10)/10;});
+  const dyeTotalRounded=dyeGrams.reduce((a,b)=>a+b,0);
+  const oxiG=Math.round(dyeTotalRounded*oxiMult*(oxiMult>=1?1:10))/(oxiMult>=1?1:10);
+  const colorOxi=dyeTotalRounded+oxiG;
   const addGrams=plexRatios.map(r=>colorOxi*r);
   const grandTotal=dyeTotal+oxiG+addGrams.reduce((a,b)=>a+b,0);
 
   // グラム表示を更新
   dyeGrams.forEach((g,i)=>{
     const el=document.getElementById('detail-g-dye-'+i);
-    if(el)el.textContent=g.toFixed(1)+' g';
+    if(el)el.textContent=fmtG(g)+' g';
   });
   const oxiEl=document.getElementById('detail-g-oxi');
   if(oxiEl)oxiEl.textContent=oxiG.toFixed(1)+' g';
   addGrams.forEach((g,i)=>{
     const el=document.getElementById('detail-g-add-'+i);
-    if(el)el.textContent=g.toFixed(1)+' g';
+    if(el)el.textContent=fmtG(g)+' g';
   });
   const totalEl=document.getElementById('detail-total-'+id);
-  if(totalEl)totalEl.textContent=grandTotal.toFixed(1)+' g';
+  if(totalEl)totalEl.textContent=fmtG(grandTotal)+' g';
 
   // 結果シートに表示
   const allItems=[
@@ -1618,8 +1621,12 @@ function calcZone(zoneName) {
     ? z.totalG / ((1 + sumPctDye) * (1 + oxiMult) * (1 + sumPctPlex))
     : z.totalG / (1 + sumPctDye);
 
-  const dyeTotalG = B * (1 + sumPctDye);
-  const oxiG = dyeTotalG * oxiMult;
+  const dyeGramsRoundCheck = z.dyes.map((_,i) => {
+    const raw = z.dyes[i].pctOn ? B*(parseFloat(z.dyes[i].pct)||0)/100 : ratioSum>0?B*(parseFloat(z.dyes[i].ratio)||0)/ratioSum:0;
+    return raw >= 1 ? Math.round(raw) : Math.round(raw*10)/10;
+  });
+  const dyeTotalG = dyeGramsRoundCheck.reduce((a,b)=>a+b,0);
+  const oxiG = Math.round(dyeTotalG * oxiMult * (oxiMult>=1?1:10))/(oxiMult>=1?1:10);
   const colorOxiTotal = dyeTotalG + oxiG;
   const dyeGrams = z.dyes.map(d => d.pctOn
     ? B * (parseFloat(d.pct)||0) / 100
