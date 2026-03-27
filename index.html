@@ -950,20 +950,20 @@ function calculate(){
   document.getElementById('result-content').innerHTML=`
     <div style="background:var(--orange);padding:16px 20px">
       <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">総量</div>
-      <div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">${grandTotal.toFixed(1)}<span style="font-size:16px"> g</span></div>
+      <div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">${fmtG(grandTotal)}<span style="font-size:16px"> g</span></div>
       <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${stylist.name}${memo?' — '+memo.split('\n')[0]:''}</div>
     </div>
     <div class="metric-grid" style="border-top:0.5px solid var(--border)">
-      <div class="metric"><div class="lbl">カラー剤合計</div><div class="val">${dyeTotalG.toFixed(1)}<span class="unit">g</span></div></div>
-      <div class="metric"><div class="lbl">オキシ</div><div class="val">${oxiG.toFixed(1)}<span class="unit">g</span></div></div>
-      ${addTotal>0?'<div class="metric"><div class="lbl">プレックス材</div><div class="val">'+addTotal.toFixed(1)+'<span class="unit">g</span></div></div>':''}
+      <div class="metric"><div class="lbl">カラー剤合計</div><div class="val">${fmtG(dyeTotalG)}<span class="unit">g</span></div></div>
+      <div class="metric"><div class="lbl">オキシ</div><div class="val">${fmtG(oxiG)}<span class="unit">g</span></div></div>
+      ${addTotal>0?'<div class="metric"><div class="lbl">プレックス材</div><div class="val">'+fmtG(addTotal)+'<span class="unit">g</span></div></div>':''}
     </div>
     <div class="bar-section">
-      ${allItems.map(it=>`<div class="bar-row"><div class="bar-lbl">${it.label}</div><div class="bar-track"><div class="bar-fill" style="width:${(it.g/grandTotal*100).toFixed(1)}%;background:${it.color}"></div></div><div class="bar-val">${it.g.toFixed(1)}g</div></div>`).join('')}
+      ${allItems.map(it=>`<div class="bar-row"><div class="bar-lbl">${it.label}</div><div class="bar-track"><div class="bar-fill" style="width:${(it.g/grandTotal*100).toFixed(1)}%;background:${it.color}"></div></div><div class="bar-val">${fmtG(it.g)}g</div></div>`).join('')}
     </div>
     <table class="res-table">
-      ${allItems.map(it=>`<tr><td><div class="nm"><div class="dot" style="background:${it.color}"></div>${it.label}</div></td><td class="gv">${it.g.toFixed(1)} g</td><td class="pv">${(it.g/grandTotal*100).toFixed(1)}%</td></tr>`).join('')}
-      <tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">${grandTotal.toFixed(1)} g</td><td class="pv">100%</td></tr>
+      ${allItems.map(it=>`<tr><td><div class="nm"><div class="dot" style="background:${it.color}"></div>${it.label}</div></td><td class="gv">${fmtG(it.g)} g</td><td class="pv">${(it.g/grandTotal*100).toFixed(1)}%</td></tr>`).join('')}
+      <tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">${fmtG(grandTotal)} g</td><td class="pv">100%</td></tr>
     </table>
     <div class="action-row">
       <button class="btn-primary" id="save-btn" onclick="openTreatmentSelect('normal')">カルテに保存</button>
@@ -1258,15 +1258,15 @@ function recalcDetail(id){
   document.getElementById('result-content').innerHTML=
     '<div style="background:var(--orange);padding:16px 20px">'
     +'<div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">再計算結果</div>'
-    +'<div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">'+grandTotal.toFixed(1)+'<span style="font-size:16px"> g</span></div>'
+    +'<div style="font-family:Cormorant Garamond,serif;font-size:36px;font-weight:300;color:#fff">'+fmtG(grandTotal)+'<span style="font-size:16px"> g</span></div>'
     +'<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">'+h.stylist_name+(h.memo?' — '+h.memo.split('\n')[0]:'')+'</div>'
     +'</div>'
     +'<div class="bar-section">'
-    +allItems.map(it=>'<div class="bar-row"><div class="bar-lbl">'+it.label+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(grandTotal>0?(it.g/grandTotal*100).toFixed(1):0)+'%;background:'+it.color+'"></div></div><div class="bar-val">'+it.g.toFixed(1)+'g</div></div>').join('')
+    +allItems.map(it=>'<div class="bar-row"><div class="bar-lbl">'+it.label+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(grandTotal>0?(it.g/grandTotal*100).toFixed(1):0)+'%;background:'+it.color+'"></div></div><div class="bar-val">'+fmtG(it.g)+'g</div></div>').join('')
     +'</div>'
     +'<table class="res-table">'
-    +allItems.map(it=>'<tr><td><div class="nm"><div class="dot" style="background:'+it.color+'"></div>'+it.label+'</div></td><td class="gv">'+it.g.toFixed(1)+' g</td><td class="pv">'+(grandTotal>0?(it.g/grandTotal*100).toFixed(1):0)+'%</td></tr>').join('')
-    +'<tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">'+grandTotal.toFixed(1)+' g</td><td class="pv">100%</td></tr>'
+    +allItems.map(it=>'<tr><td><div class="nm"><div class="dot" style="background:'+it.color+'"></div>'+it.label+'</div></td><td class="gv">'+fmtG(it.g)+' g</td><td class="pv">'+(grandTotal>0?(it.g/grandTotal*100).toFixed(1):0)+'%</td></tr>').join('')
+    +'<tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">'+fmtG(grandTotal)+' g</td><td class="pv">100%</td></tr>'
     +'</table>'
     +'<div class="action-row">'
     +'<div class="action-row"><button class="btn-ghost" onclick="document.getElementById(&quot;result-overlay&quot;).classList.remove(&quot;show&quot;)">閉じる</button></div>';
@@ -1664,7 +1664,7 @@ function calculateZone() {
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
           <div style="width:8px;height:8px;border-radius:50%;background:${zoneColor}"></div>
           <div style="font-size:13px;font-weight:500;color:#fff">${zoneName}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-left:auto">${res.grandTotal.toFixed(1)}g</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-left:auto">${fmtG(res.grandTotal)}g</div>
         </div>
         ${allItems.map(it => `
           <div class="bar-row">
@@ -1693,12 +1693,12 @@ function calculateZone() {
         <div style="display:flex;align-items:center;gap:6px">
           <div style="width:7px;height:7px;border-radius:50%;background:${zoneColor}"></div>
           <span style="font-size:12px;font-weight:500;color:var(--text)">${zoneName}</span>
-          <span style="font-size:11px;color:var(--text3);margin-left:auto">計 ${res.grandTotal.toFixed(1)}g</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">計 ${fmtG(res.grandTotal)}g</span>
         </div>
       </td></tr>
       ${allItems.map(it => `
         <tr><td><div class="nm" style="padding-left:8px"><div class="dot" style="background:${it.color}"></div>${it.label}</div></td>
-        <td class="gv">${it.g.toFixed(1)} g</td>
+        <td class="gv">${fmtG(it.g)} g</td>
         <td class="pv">${(it.g/res.grandTotal*100).toFixed(1)}%</td></tr>
       `).join('')}`;
   });
@@ -1715,7 +1715,7 @@ function calculateZone() {
       ${tableHTML}
       <tr class="total-row">
         <td><div class="nm">全体合計</div></td>
-        <td class="gv">${totalGrandTotal.toFixed(1)} g</td>
+        <td class="gv">${fmtG(totalGrandTotal)} g</td>
         <td class="pv">—</td>
       </tr>
     </table>
@@ -1857,6 +1857,7 @@ function selectTreatmentType(id) {
 
 async function executeSave() {
   document.getElementById('treatment-overlay').classList.remove('show');
+  document.getElementById('result-overlay').classList.remove('show');
   if (_treatmentSaveMode === 'zone') {
     await saveZoneRecord(_selectedTreatmentType);
   } else {
@@ -2314,6 +2315,12 @@ function resetPerm() {
   if (memo) memo.value = '';
   renderPermZoneList();
   toast('リセットしました');
+}
+
+// グラム表示フォーマット: 1g以上は整数、1g未満は小数点1桁
+function fmtG(g) {
+  const v = parseFloat(g) || 0;
+  return v >= 1 ? v.toFixed(0) : v.toFixed(1);
 }
 
 function scrollHelpTo(id){
