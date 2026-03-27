@@ -1831,6 +1831,8 @@ function openTreatmentSelect(mode) {
   saveBtn.onclick = () => executeSave();
   grid.appendChild(saveBtn);
 
+  // result-overlayを先に閉じてからtreatment-overlayを開く
+  document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('treatment-overlay').classList.add('show');
 }
 
