@@ -171,6 +171,15 @@ textarea{resize:none;height:56px;font-size:13px}
     <!-- 配合計算コンテンツ -->
     <div id="sub-calc-content">
 
+    <!-- お気に入り -->
+    <div id="favorites-section" style="display:none;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);letter-spacing:.04em">♡ お気に入り</div>
+        <div style="font-size:11px;color:var(--text3)">長押しで削除</div>
+      </div>
+      <div id="favorites-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+
     <!-- スタイリスト選択 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-title">担当スタイリスト</div>
@@ -656,22 +665,30 @@ async function init(){
   renderDyes();
   initZoneData(zoneCurrentPattern);
   cleanOldRecords();
+  await loadFavoritesFromDB();
+  renderFavorites();
   // 全input/textareaでfocus時にカーソルを末尾へ
   document.addEventListener('focusin', e => {
     const el = e.target;
     if (el.tagName === 'INPUT' && (el.type === 'number' || el.type === 'text')) {
       setTimeout(() => {
-        try {
-          const v = el.value;
-          el.value = '';
-          el.value = v;
-        } catch(_) {}
+        try { const v=el.value; el.value=''; el.value=v; } catch(_) {}
       }, 0);
     } else if (el.tagName === 'TEXTAREA') {
-      setTimeout(() => {
-        const len = el.value.length;
-        el.setSelectionRange(len, len);
-      }, 0);
+      setTimeout(() => { const len=el.value.length; el.setSelectionRange(len,len); }, 0);
+    }
+  });
+  // 空白タップでキーボードを閉じる
+  document.addEventListener('touchstart', e => {
+    const tag = e.target.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+      document.activeElement?.blur();
+    }
+  }, {passive: true});
+  // Enterキーでキーボードを閉じる（数値入力欄のみ）
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+      e.target.blur();
     }
   });
 }
@@ -989,7 +1006,8 @@ function calculate(){
       <tr class="total-row"><td><div class="nm">合計</div></td><td class="gv">${fmtG(grandTotal)} g</td><td class="pv">100%</td></tr>
     </table>
     <div class="action-row">
-      <button class="btn-primary" id="save-btn" onclick="openTreatmentSelect('normal')">カルテに保存</button>
+      <button onclick="saveFavorite()" style="width:44px;height:44px;border-radius:50%;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center" title="お気に入りに追加">♡</button>
+      <button class="btn-primary" id="save-btn" onclick="openTreatmentSelect('normal')" style="flex:1">カルテに保存</button>
     </div>
   `;
 
@@ -2367,6 +2385,96 @@ function resetPerm() {
 function fmtG(g) {
   const v = parseFloat(g) || 0;
   return v >= 1 ? v.toFixed(0) : v.toFixed(1);
+}
+
+// ─── FAVORITES ───
+// ─── FAVORITES (Supabase) ───
+let _favorites = []; // キャッシュ
+
+async function loadFavoritesFromDB() {
+  try {
+    const { data, error } = await sb.from('favorites').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    _favorites = data || [];
+  } catch(e) {
+    _favorites = [];
+  }
+}
+
+async function saveFavorite() {
+  const r = window._lastCalc;
+  if (!r) return;
+  const name = prompt('お気に入りの名前を入力してください（例: KEN定番 / N7+A10 等倍）');
+  if (!name || !name.trim()) return;
+  setSyncState('syncing');
+  const { data, error } = await sb.from('favorites').insert({
+    name: name.trim(),
+    dyes: r.dyes.map(d => ({name:d.name, ratio:d.ratio, pctOn:d.pctOn, pct:d.pct})),
+    oxi_type: r.oxiType,
+    oxi_mult: r.oxiMult,
+    oxi_included: r.oxiIncluded,
+    additionals: r.additionals.map(a => ({type:a.type, name:a.name, pct:a.pct})),
+  }).select().single();
+  if (error) { toast('保存に失敗しました'); setSyncState(''); return; }
+  _favorites.unshift(data);
+  setSyncState('ok');
+  renderFavorites();
+  const btn = document.querySelector('[onclick="saveFavorite()"]');
+  if (btn) { btn.textContent = '♥'; btn.style.color = 'var(--orange)'; }
+  toast('お気に入りに追加しました ♥');
+}
+
+function loadFavorite(id) {
+  const fav = _favorites.find(f => f.id === id);
+  if (!fav) return;
+  dyes = (fav.dyes||[]).map(d => ({name:d.name||'', ratio:d.ratio||1, pctOn:d.pctOn||false, pct:d.pct||10}));
+  additionals = (fav.additionals||[]).map(a => ({type:a.type||'Eans0番', name:a.name||'', pct:a.pct||10}));
+  const oxiTypeEl = document.getElementById('oxi-type');
+  const oxiMultEl = document.getElementById('oxi-mult');
+  if (oxiTypeEl) oxiTypeEl.value = fav.oxi_type || '6%';
+  if (oxiMultEl) oxiMultEl.value = fav.oxi_mult || 1;
+  setOxiMode(fav.oxi_included !== false);
+  updateOxiHint();
+  renderDyes();
+  renderAdditionals();
+  toast('「' + fav.name + '」を読み込みました');
+}
+
+async function deleteFavorite(id) {
+  if (!confirm('このお気に入りを削除しますか？')) return;
+  setSyncState('syncing');
+  const { error } = await sb.from('favorites').delete().eq('id', id);
+  if (error) { toast('削除に失敗しました'); setSyncState(''); return; }
+  _favorites = _favorites.filter(f => f.id !== id);
+  setSyncState('ok');
+  renderFavorites();
+  toast('削除しました');
+}
+
+function renderFavorites() {
+  const section = document.getElementById('favorites-section');
+  const list = document.getElementById('favorites-list');
+  if (!section || !list) return;
+  if (_favorites.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = _favorites.map(f => {
+    const dyeStr = (f.dyes||[]).map(d => d.name || 'カラー').join(' : ');
+    return '<button onclick="loadFavorite(&quot;'+f.id+'&quot;)"'
+      + ' oncontextmenu="event.preventDefault();deleteFavorite(&quot;'+f.id+'&quot;)"'
+      + ' ontouchstart="startFavLongPress(&quot;'+f.id+'&quot;)" ontouchend="cancelFavLongPress()" ontouchmove="cancelFavLongPress()"'
+      + ' style="padding:8px 14px;border-radius:99px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-family:inherit;text-align:left;transition:all .15s;flex-shrink:0">'
+      + '<div style="font-size:12px;font-weight:500;color:var(--text)">♥ ' + f.name + '</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + dyeStr + ' / ' + (f.oxi_type||'6%') + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+let _favLongPressTimer = null;
+function startFavLongPress(id) {
+  _favLongPressTimer = setTimeout(() => { deleteFavorite(id); }, 700);
+}
+function cancelFavLongPress() {
+  if (_favLongPressTimer) { clearTimeout(_favLongPressTimer); _favLongPressTimer = null; }
 }
 
 function scrollHelpTo(id){
