@@ -2005,7 +2005,7 @@ const PERM_AGENTS = [
   {id:'POT', label:'ポテンツァ',                 color:'#2E7D32', bg:'#2E7D3222', eans:true},
   {id:'PMT', label:'ポテンツァ メンテナンス',    color:'#81C784', bg:'#81C78422', eans:true},
 ];
-const PERM_PARTS = ['新生部','根元','毛先'];
+const PERM_PARTS = ['全体','新生部','根元','毛先'];
 
 let permMenu = '縮毛矯正';
 // permItems: [{id, part, subPart, agents:[{id,agentId,ratio}], totalG}]
@@ -2271,11 +2271,12 @@ function calculatePerm() {
     const partLabel = item.part === '毛先' ? item.subPart : item.part;
     const isMulti = item.agents.length > 1;
     const ratioSum = item.agents.reduce((s,a) => s+(parseFloat(a.ratio)||0), 0);
-    const accentColor = (PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0]).color;
+    const agentObj = PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0];
+    const accentColor = agentObj.color;
 
     let agentDetail = '';
     if (!isMulti) {
-      const aObj = PERM_AGENTS.find(a => a.id === item.agents[0]?.agentId) || PERM_AGENTS[0];
+      const aObj = agentObj;
       agentDetail = '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+aObj.label+'</div>';
     } else {
       const ratioStr = item.agents.map(a => (parseFloat(a.ratio)||0)).join(' : ');
