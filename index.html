@@ -683,6 +683,7 @@ function setSyncState(s){
 }
 
 async function init(){
+  await sb.auth.signInAnonymously();
   setSyncState('syncing');
   await loadStylists();
   await loadRecords();
